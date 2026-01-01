@@ -161,144 +161,189 @@
 // export default Dashboard;
 
 
-import React, { useState } from "react";
+
+import React from "react";
 import { 
-  Instagram, Facebook, TrendingUp, PieChart, 
-  MessageCircle, X, ArrowLeft, ChevronRight, ChevronLeft 
+  Instagram, Facebook, TrendingUp, PieChart, Home 
 } from "lucide-react";
 import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement, 
-  LineElement, ArcElement, Title, Tooltip, Legend 
+  LineElement, ArcElement, Title, Tooltip, Legend, Filler 
 } from "chart.js";
 import { Line, Doughnut } from "react-chartjs-2";
+import { useNavigate } from "react-router-dom";
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Title, Tooltip, Legend);
+// Registro obrigatório dos componentes do Chart.js
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Title, Tooltip, Legend, Filler);
 
-const Dashboard = ({ sampleFeedbacks = [] }) => {
-  const [viewRedeSocial, setViewRedeSocial] = useState(null);
-  const [viewTipoFiltro, setViewTipoFiltro] = useState(null); // 'pos' ou 'neg'
-  const [pagina, setPagina] = useState(0);
-  const itensPorPagina = 10;
+const Dashboard = ({ sampleFeedbacks = [], notificacoes }) => {
+  const navigate = useNavigate();
 
-  // --- PROCESSAMENTO DE DADOS ---
+  // --- CÁLCULO DE DADOS ---
+  const labels = sampleFeedbacks.map(f => f.date);
   const dadosPos = sampleFeedbacks.map(f => f.positivos || 0);
   const dadosNeg = sampleFeedbacks.map(f => f.negativos || 0);
+  
   const totalPos = dadosPos.reduce((a, b) => a + b, 0);
   const totalNeg = dadosNeg.reduce((a, b) => a + b, 0);
 
-  // Captura todas as mensagens de todos os dias
-  const todasAsMensagens = sampleFeedbacks.flatMap(dia => dia.mensagens || []);
-  
-  // Filtra as mensagens pelo tipo selecionado (positivo ou negativo)
-  const mensagensFiltradas = todasAsMensagens.filter(m => 
-    viewTipoFiltro === 'pos' ? m.sentiment === 'pos' : m.sentiment === 'neg'
-  );
+  const qtdInstagram = notificacoes?.instagram || 0;
+  const qtdFacebook = notificacoes?.facebook || 0;
 
-  // Paginação
-  const totalPaginas = Math.ceil(mensagensFiltradas.length / itensPorPagina);
-  const mensagensExibidas = mensagensFiltradas.slice(pagina * itensPorPagina, (pagina + 1) * itensPorPagina);
-
-  const handleAbrirFiltro = (tipo) => {
-    setViewTipoFiltro(tipo);
-    setPagina(0);
-    setViewRedeSocial(null); // Fecha a vista de redes sociais se estiver aberta
+  // Navegação com filtros para a tela Social
+  const verMensagens = (tipo, valor) => {
+    navigate("/social-messages", { state: { [tipo]: valor } });
   };
 
   return (
-    <div style={{ padding: "30px", color: "white", minHeight: "100%" }}>
+    <div style={{ padding: "30px", color: "white", minHeight: "100%", backgroundColor: "#0f172a" }}>
       
-      {/* CABEÇALHO */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "25px" }}>
-        <h2 style={{ margin: 0 }}>Visão Geral</h2>
+      {/* 1. BOTÃO SAIR PARA HOME */}
+      <button 
+        onClick={() => navigate("/")} 
+        style={btnHomeStyle}
+      >
+        <Home size={18} /> Sair para Home
+      </button>
+
+      {/* 2. CABEÇALHO E REDES SOCIAIS */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
+        <h2 style={{ margin: 0, fontSize: "1.8rem", fontWeight: "600" }}>Visão Geral</h2>
+        
         <div style={{ display: "flex", gap: "15px" }}>
-          <div onClick={() => setViewRedeSocial('instagram')} style={socialIconContainer}>
+          {/* Instagram */}
+          <button onClick={() => verMensagens("rede", "Instagram")} style={socialButtonStyle}>
             <Instagram size={22} color="#E4405F" />
-          </div>
-          <div onClick={() => setViewRedeSocial('facebook')} style={socialIconContainer}>
+            {qtdInstagram > 0 && <span style={badgeStyle}>{qtdInstagram}</span>}
+          </button>
+
+          {/* Facebook */}
+          <button onClick={() => verMensagens("rede", "Facebook")} style={socialButtonStyle}>
             <Facebook size={22} color="#1877F2" />
-          </div>
+            {qtdFacebook > 0 && <span style={badgeStyle}>{qtdFacebook}</span>}
+          </button>
         </div>
       </div>
 
-      {/* 1. BOTOES DE RESUMO (CLICÁVEIS) */}
+      {/* 3. CARDS DE RESUMO (CLICÁVEIS) */}
       <div style={{ display: "flex", gap: "20px", marginBottom: "30px" }}>
-        <div onClick={() => handleAbrirFiltro('pos')} style={{ ...cardResumo, borderLeft: "5px solid #10b981", boxShadow: viewTipoFiltro === 'pos' ? "0 0 15px rgba(16,185,129,0.3)" : "none" }}>
-          <div style={labelCard}>Mensagens Positivas</div>
-          <div style={{ fontSize: "2.2rem", fontWeight: "bold", color: "#10b981" }}>{totalPos}</div>
-          <small style={{ color: "#64748b" }}>Clique para listar</small>
+        <div 
+          onClick={() => verMensagens("filtroSentimento", "pos")} 
+          style={{ ...cardResumo, borderLeft: "6px solid #10b981" }}
+        >
+          <span style={labelCard}>Feedbacks Positivos</span>
+          <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "#10b981" }}>{totalPos}</div>
+          <small style={{ color: "#64748b" }}>Ver últimas 10 mensagens →</small>
         </div>
         
-        <div onClick={() => handleAbrirFiltro('neg')} style={{ ...cardResumo, borderLeft: "5px solid #ef4444", boxShadow: viewTipoFiltro === 'neg' ? "0 0 15px rgba(239,68,68,0.3)" : "none" }}>
-          <div style={labelCard}>Mensagens Negativas</div>
-          <div style={{ fontSize: "2.2rem", fontWeight: "bold", color: "#ef4444" }}>{totalNeg}</div>
-          <small style={{ color: "#64748b" }}>Clique para listar</small>
+        <div 
+          onClick={() => verMensagens("filtroSentimento", "neg")} 
+          style={{ ...cardResumo, borderLeft: "6px solid #ef4444" }}
+        >
+          <span style={labelCard}>Feedbacks Negativos</span>
+          <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "#ef4444" }}>{totalNeg}</div>
+          <small style={{ color: "#64748b" }}>Ver últimas 10 mensagens →</small>
         </div>
       </div>
 
-      {/* SEÇÃO DE LISTAGEM (APARECE AO CLICAR NOS BOTOES) */}
-      {viewTipoFiltro && (
-        <div style={containerLista}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-            <h3 style={{ margin: 0, color: viewTipoFiltro === 'pos' ? "#10b981" : "#ef4444" }}>
-              Listando: {viewTipoFiltro === 'pos' ? "Positivas" : "Negativas"}
-            </h3>
-            <button onClick={() => setViewTipoFiltro(null)} style={btnFechar}>Fechar Lista ✕</button>
-          </div>
-
-          <div style={{ minHeight: "200px" }}>
-            {mensagensExibidas.length > 0 ? mensagensExibidas.map((m, i) => (
-              <div key={i} style={itemMensagem}>{m.text}</div>
-            )) : <p>Nenhuma mensagem nesta categoria.</p>}
-          </div>
-
-          {/* PAGINAÇÃO */}
-          <div style={paginacaoStyle}>
-            <button disabled={pagina === 0} onClick={() => setPagina(p => p - 1)} style={btnSeta}>
-              <ChevronLeft size={20} /> Anterior
-            </button>
-            <span>Página {pagina + 1} de {totalPaginas || 1}</span>
-            <button disabled={pagina >= totalPaginas - 1} onClick={() => setPagina(p => p + 1)} style={btnSeta}>
-              Próxima <ChevronRight size={20} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 2. GRÁFICOS */}
-      <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", opacity: viewTipoFiltro ? 0.5 : 1 }}>
+      {/* 4. GRÁFICOS */}
+      <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
+        
+        {/* Gráfico de Evolução */}
         <div style={cardGrafico}>
-          <div style={tituloGrafico}><TrendingUp size={18} /> Evolução</div>
-          <div style={{ height: "250px" }}>
+          <div style={tituloGrafico}><TrendingUp size={18} /> Evolução Diária</div>
+          <div style={{ height: "280px" }}>
             <Line 
-              data={{ labels: sampleFeedbacks.map(f => f.date), datasets: [{ label: 'Pos', data: dadosPos, borderColor: '#10b981' }, { label: 'Neg', data: dadosNeg, borderColor: '#ef4444' }] }} 
-              options={{ maintainAspectRatio: false, plugins: { legend: { display: false } } }} 
+              data={{ 
+                labels: labels, 
+                datasets: [
+                  { 
+                    label: 'Positivos', 
+                    data: dadosPos, 
+                    borderColor: '#10b981', 
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    tension: 0.4, 
+                    fill: true,
+                    pointRadius: 4
+                  }, 
+                  { 
+                    label: 'Negativos', 
+                    data: dadosNeg, 
+                    borderColor: '#ef4444', 
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    tension: 0.4, 
+                    fill: true,
+                    pointRadius: 4
+                  }
+                ] 
+              }} 
+              options={{ 
+                maintainAspectRatio: false, 
+                plugins: { legend: { display: false } },
+                scales: {
+                  y: { beginAtZero: true, grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' } },
+                  x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                }
+              }} 
             />
           </div>
         </div>
-        <div style={cardGrafico}>
-          <div style={tituloGrafico}><PieChart size={18} /> Proporção</div>
-          <div style={{ height: "250px" }}>
+
+        {/* Gráfico de Proporção */}
+        <div style={{ ...cardGrafico, flex: "0 1 350px" }}>
+          <div style={tituloGrafico}><PieChart size={18} /> Distribuição Total</div>
+          <div style={{ height: "280px" }}>
             <Doughnut 
-              data={{ labels: ['Pos', 'Neg'], datasets: [{ data: [totalPos, totalNeg], backgroundColor: ['#10b981', '#ef4444'], borderWidth: 0 }] }} 
-              options={{ maintainAspectRatio: false }} 
+              data={{ 
+                labels: ['Positivos', 'Negativos'], 
+                datasets: [{ 
+                  data: [totalPos, totalNeg], 
+                  backgroundColor: ['#10b981', '#ef4444'], 
+                  borderWidth: 0 
+                }] 
+              }} 
+              options={{ 
+                maintainAspectRatio: false, 
+                plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } } 
+              }} 
             />
           </div>
         </div>
+
       </div>
     </div>
   );
 };
 
 // --- ESTILOS ---
-const cardResumo = { flex: 1, background: "#1e293b", padding: "20px", borderRadius: "12px", cursor: "pointer", border: "1px solid #334155", transition: "0.3s" };
-const labelCard = { fontSize: "0.85rem", color: "#94a3b8", fontWeight: "600", marginBottom: "5px" };
-const containerLista = { background: "#161e2b", padding: "25px", borderRadius: "15px", marginBottom: "30px", border: "1px solid #3b82f6", animation: "fadeIn 0.3s ease" };
-const itemMensagem = { padding: "12px", borderBottom: "1px solid #334155", fontSize: "0.9rem", color: "#e2e8f0" };
-const paginacaoStyle = { display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "20px", paddingTop: "15px", borderTop: "1px solid #334155" };
-const btnSeta = { display: "flex", alignItems: "center", gap: "5px", background: "#3b82f6", color: "white", border: "none", padding: "8px 15px", borderRadius: "6px", cursor: "pointer", opacity: "1", transition: "0.2s" };
-const btnFechar = { background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontWeight: "bold" };
-const cardGrafico = { flex: 1, background: "#1e293b", padding: "20px", borderRadius: "15px", minWidth: "300px", border: "1px solid #334155" };
-const tituloGrafico = { display: "flex", alignItems: "center", gap: "8px", marginBottom: "15px", color: "#cbd5e1" };
-const socialIconContainer = { padding: "8px", background: "#1e293b", borderRadius: "50%", cursor: "pointer", border: "1px solid #334155" };
+const btnHomeStyle = {
+  background: "none", border: "none", color: "#94a3b8", cursor: "pointer",
+  display: "flex", alignItems: "center", gap: "8px", marginBottom: "20px", fontSize: "0.9rem"
+};
+
+const socialButtonStyle = { 
+  padding: "10px", background: "#1e293b", borderRadius: "50%", border: "1px solid #334155", 
+  cursor: "pointer", position: "relative", display: "flex", alignItems: "center", justifyContent: "center" 
+};
+
+const badgeStyle = { 
+  position: "absolute", top: "-5px", right: "-5px", background: "#ef4444", color: "white", 
+  borderRadius: "50%", minWidth: "18px", height: "18px", fontSize: "10px", 
+  display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", border: "2px solid #0f172a"
+};
+
+const cardResumo = { 
+  flex: 1, background: "#1e293b", padding: "20px", borderRadius: "12px", 
+  cursor: "pointer", border: "1px solid #334155", transition: "0.2s" 
+};
+
+const labelCard = { fontSize: "0.8rem", color: "#94a3b8", fontWeight: "bold", textTransform: "uppercase" };
+
+const cardGrafico = { 
+  flex: 1, background: "#1e293b", padding: "25px", borderRadius: "15px", 
+  minWidth: "300px", border: "1px solid #334155" 
+};
+
+const tituloGrafico = { display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px", color: "#cbd5e1" };
 
 export default Dashboard;

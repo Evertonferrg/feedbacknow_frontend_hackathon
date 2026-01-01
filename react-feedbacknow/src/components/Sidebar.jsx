@@ -1,57 +1,3 @@
-// import { useNavigate } from "react-router-dom";
-
-// export default function Sidebar() {
-//   const navigate = useNavigate();
-
-//   return (
-//     <aside className="sidebar">
-//       <h2 className="sidebar-title">Menu</h2>
-
-//       <button
-//         type="button"
-//         className="sidebar-link"
-//         onClick={() => navigate("/dashboard")}
-//       >
-//         Visão Geral
-//       </button>
-
-//       <button
-//         type="button"
-//         className="sidebar-link"
-//         onClick={() => navigate("/todoscomentarios")}
-//       >
-//         Todos os Feedbacks
-//       </button>
-
-//       <button
-//         type="button"
-//         className="sidebar-link"
-//         onClick={() => navigate("/reports")}
-//       >
-//         Relatórios
-//       </button>
-
-//       <button
-//         type="button"
-//         className="sidebar-link"
-//         onClick={() => navigate("/clientes")}
-//       >
-//         Clientes
-//       </button>
-
-//       <hr />
-
-//       <button
-//         type="button"
-//         className="sidebar-link logout"
-//         onClick={() => navigate("/login")}
-//       >
-//         Sair
-//       </button>
-//     </aside>
-//   );
-// }
-
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
@@ -86,7 +32,8 @@ const Sidebar = () => {
     paddingLeft: "12px",
     display: "flex",
     alignItems: "center",
-    gap: "10px"
+    gap: "10px",
+    textDecoration: "none"
   };
 
   // Função para aplicar estilo dinâmico nos itens do menu
@@ -109,10 +56,10 @@ const Sidebar = () => {
   return (
     <div style={sidebarStyle}>
       {/* LOGO */}
-      <div style={logoStyle}>
+      <Link to="/dashboard" style={logoStyle}>
         <div style={{ width: "8px", height: "24px", backgroundColor: "#3b82f6", borderRadius: "2px" }}></div>
         FeedbackNow
-      </div>
+      </Link>
       
       {/* NAVEGAÇÃO PRINCIPAL */}
       <nav style={{ flex: 1 }}>
@@ -158,8 +105,6 @@ const Sidebar = () => {
             color: "#ef4444",
             backgroundColor: "transparent" 
           }}
-          onMouseOver={(e) => e.currentTarget.style.backgroundColor = "rgba(239, 68, 68, 0.1)"}
-          onMouseOut={(e) => e.currentTarget.style.backgroundColor = "transparent"}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <LogOut size={20} />
@@ -171,4 +116,5 @@ const Sidebar = () => {
   );
 };
 
+// ESTA LINHA É A MAIS IMPORTANTE PARA RESOLVER O SEU ERRO
 export default Sidebar;

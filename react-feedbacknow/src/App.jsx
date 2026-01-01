@@ -30,49 +30,66 @@
 // }
 
 
+
 import React, { useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
-// IMPORTAÇÕES DE COMPONENTES E PÁGINAS
-import Sidebar from "./components/Sidebar"; 
+// --- COMPONENTES ---
+import Sidebar from "./components/Sidebar";
+
+// --- PÁGINAS ---
 import Home from "./pages/Home/Home";
 import Login from "./pages/Login/Login";
-import Dashboard from "./pages/Dashboard/Dashboard";
 import Clientes from "./pages/Clientes/Clientes";
+import Dashboard from "./pages/Dashboard/Dashboard";
 import TodosComentarios from "./pages/FeedbackPages/TodosComentarios";
-import AnaliseEmLote from "./pages/AnaliseEmLote/AnaliseEmLote"; 
-import Reports from "./pages/Reports/Reports"; // Corrigido de 'Roports' para 'Reports'
+import Reports from "./pages/Reports/Reports";
+import Social from "./pages/Social/Social"; 
+import AnaliseEmLote from "./pages/AnaliseEmLote/AnaliseEmLote";
 
-import "./styles/global.css";
+function App() {
+  const [notificacoes, setNotificacoes] = useState({ 
+    instagram: 8, 
+    facebook: 3 
+  });
 
-export default function App() {
   const [feedbacks] = useState([
     { 
-      date: "Seg", positivos: 10, negativos: 2, 
-      mensagens: [{ text: "Muito bom!", sentiment: "pos" }, { text: "Ruim", sentiment: "neg" }] 
-    },
-    { date: "Ter", positivos: 15, negativos: 5, mensagens: [] },
+      id: 1, 
+      date: "2024-05-01", 
+      positivos: 15, 
+      negativos: 3, 
+      mensagens: [
+        { text: "Ótimo post no Insta!", sentiment: "pos", origem: "instagram" },
+        { text: "Não gostei do atendimento no Face", sentiment: "neg", origem: "facebook" }
+      ] 
+    }
   ]);
 
   return (
     <Routes>
-      {/* 1. ROTAS PÚBLICAS (Sem Sidebar) */}
+      {/* --- SEM SIDEBAR --- */}
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/clientes" element={<Clientes />} />
 
-      {/* 2. ROTAS PRIVADAS (Com Sidebar) */}
+      {/* --- COM SIDEBAR --- */}
       <Route path="/*" element={
         <div style={{ display: "flex", width: "100vw", height: "100vh", backgroundColor: "#0f172a", overflow: "hidden" }}>
           <Sidebar />
           <main style={{ flex: 1, overflowY: "auto" }}>
             <Routes>
-              <Route path="/dashboard" element={<Dashboard sampleFeedbacks={feedbacks} />} />
+              <Route 
+                path="/dashboard" 
+                element={<Dashboard sampleFeedbacks={feedbacks} notificacoes={notificacoes} />} 
+              />
+              <Route 
+                path="/social-messages" 
+                element={<Social sampleFeedbacks={feedbacks} setNotificacoes={setNotificacoes} />} 
+              />
               <Route path="/todoscomentarios" element={<TodosComentarios sampleFeedbacks={feedbacks} />} />
+              <Route path="/reports" element={<Reports sampleFeedbacks={feedbacks} />} />
               <Route path="/analise" element={<AnaliseEmLote />} />
-              <Route path="/clientes" element={<Clientes />} />
-              <Route path="/reports" element={<Reports />} />
-              
-              {/* Fallback para o dashboard caso a rota interna não exista */}
               <Route path="*" element={<Navigate to="/dashboard" />} />
             </Routes>
           </main>
@@ -81,3 +98,6 @@ export default function App() {
     </Routes>
   );
 }
+
+
+export default App;
