@@ -176,6 +176,36 @@ body {
 .stat-grid { /* keep stat cards below the header so they don't overlap */
     margin-top: 0.75rem;
 }
+admin-sidebar > div {
+    display: flex;
+    align-items: center; /* Mantém alinhado verticalmente ao brand */
+    justify-content: space-between;
+    height: 40px; /* Altura fixa para evitar saltos */
+}
+
+/* Visão Geral: Gráfico ao centro e botões à direita (um acima do outro) */
+.visao-geral-container {
+    display: grid;
+    grid-template-columns: 1fr 200px; /* Gráfico largo e coluna estreita para botões */
+    gap: 1.5rem;
+    align-items: start;
+    margin-top: 1rem;
+}
+
+.botoes-laterais {
+    display: flex;
+    flex-direction: column; /* Um acima do outro */
+    gap: 1rem;
+}
+
+/* Ajuste do botão hambúrguer no estado colapsado */
+.admin-root.collapsed .admin-sidebar {
+    width: 60px;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
 .stat-card {
     background: rgba(8,12,22,0.6); /* slightly darker panel */
     padding: 1rem;
@@ -323,3 +353,45 @@ body {
 #social-modal .glass { max-width: 720px; }
 #social-modal .absolute { z-index: 40; }
 #social-modal .glass { z-index: 50; }
+
+.feedback-item-list {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  display: flex;
+  gap: 10px;
+}
+
+.pos-tic { border-right: 3px solid #10b981; }
+.neg-tic { border-right: 3px solid #ef4444; }
+
+/* Botões de seta */
+.nav-arrow {
+  background: #2a2f45;
+  color: white;
+  border: 1px solid #4a4f65;
+  padding: 8px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.nav-arrow:hover:not(:disabled) {
+  background: #3a3f55;
+}
+
+.nav-arrow:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Sidebar colapsada mantém hambúrguer fixo à esquerda */
+.collapsed .admin-sidebar {
+  width: 60px;
+}
+
+.collapsed .sidebar-toggle {
+  margin: 0 auto;
+}

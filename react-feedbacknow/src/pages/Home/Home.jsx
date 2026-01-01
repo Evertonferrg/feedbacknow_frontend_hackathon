@@ -1,9 +1,9 @@
+import React from "react";
+import { useNavigate } from "react-router-dom";
 
+export default function Home() {
+  const navigate = useNavigate();
 
-import React from 'react';
-
-// Recebemos o setView aqui para poder trocar de página
-export default function Home({ setView }) {
   return (
     <div className="home-root">
       <h1 className="home-title">FeedbackNow</h1>
@@ -14,7 +14,7 @@ export default function Home({ setView }) {
           <h2>Sou Cliente</h2>
           <p>Deseja enviar um feedback sobre um serviço?</p>
           <button
-            onClick={() => setView?.("clientes")}
+            onClick={() => navigate("/clientes")}
             className="home-card-btn primary"
           >
             Enviar feedback
@@ -25,7 +25,7 @@ export default function Home({ setView }) {
           <h2>Menu Empresa</h2>
           <p>Entre para acessar o painel administrativo e relatórios.</p>
           <button
-            onClick={() => setView?.("empresa")}
+            onClick={() => navigate("/login")}
             className="home-card-btn secondary"
           >
             Entrar

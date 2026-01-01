@@ -1,33 +1,42 @@
-import { useState } from 'react';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-export default function Login({ setView, setUser }) {
-  const [username, setUsername] = useState('');
-  const [pass, setPass] = useState('');
-  const [error, setError] = useState('');
+export default function Login() {
+  const navigate = useNavigate();
+
+  const [username, setUsername] = useState("");
+  const [pass, setPass] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   function handleLogin() {
-    setError('');
+    setError("");
+
     if (!username.trim() || !pass.trim()) {
-      setError('Por favor, preencha usuário e senha.');
+      setError("Por favor, preencha usuário e senha.");
       return;
     }
+
     setLoading(true);
-    // Simula uma requisição de login
+
+    // Simula login
     setTimeout(() => {
       setLoading(false);
-      // set the current user in app state
-      try {
-        setUser?.({ name: username });
-      } catch (e) {}
-      setView?.('dashboard');
+
+      // 🔐 aqui depois você pode salvar token no localStorage
+      localStorage.setItem("user", JSON.stringify({ name: username }));
+
+      // 👉 navegação correta
+      navigate("/dashboard");
     }, 600);
   }
 
   return (
     <div className="page-container">
       <div className="modal-panel glass">
-        <h2 style={{ textAlign: 'center', fontSize: '1.5rem', marginBottom: '1rem' }}>Acesso Empresa</h2>
+        <h2 style={{ textAlign: "center", fontSize: "1.5rem", marginBottom: "1rem" }}>
+          Acesso Empresa
+        </h2>
 
         <input
           value={username}
@@ -35,6 +44,7 @@ export default function Login({ setView, setUser }) {
           className="form-input"
           placeholder="Usuário"
         />
+
         <input
           value={pass}
           onChange={(e) => setPass(e.target.value)}
@@ -43,13 +53,20 @@ export default function Login({ setView, setUser }) {
           placeholder="Senha"
         />
 
-        {error && <div style={{ color: '#fecaca', marginBottom: '0.5rem' }}>{error}</div>}
+        {error && <div style={{ color: "#fecaca", marginBottom: "0.5rem" }}>{error}</div>}
 
         <div className="form-actions">
           <button onClick={handleLogin} disabled={loading} className="home-card-btn primary">
-            {loading ? 'Entrando...' : 'Entrar'}
+            {loading ? "Entrando..." : "Entrar"}
           </button>
-          <button onClick={() => setView?.('home')} disabled={loading} className="home-card-btn secondary">Voltar</button>
+
+          <button
+            onClick={() => navigate("/")}
+            disabled={loading}
+            className="home-card-btn secondary"
+          >
+            Voltar
+          </button>
         </div>
       </div>
     </div>
