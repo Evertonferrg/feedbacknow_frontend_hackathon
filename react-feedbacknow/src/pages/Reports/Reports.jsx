@@ -6,8 +6,10 @@ import * as XLSX from "xlsx";
 
 const Reports = ({ sampleFeedbacks = [] }) => {
   const [qtd, setQtd] = useState(10);
+  const [page, setPage] = useState(0);
+  const pageSize = 20; // quantidade de comentários por página
 
-  // Pega todas as mensagens brutas para exportar
+  // Pega todas as mensagens brutas
   const todasMensagens = sampleFeedbacks.flatMap(dia => 
     dia.mensagens.map(m => ({ 
       data: dia.date, 
@@ -15,6 +17,18 @@ const Reports = ({ sampleFeedbacks = [] }) => {
       texto: m.text 
     }))
   );
+
+  const totalPages = Math.ceil(todasMensagens.length / pageSize);
+
+  const currentComments = todasMensagens.slice(page * pageSize, (page + 1) * pageSize);
+
+  const handleNext = () => {
+    if (page < totalPages - 1) setPage(page + 1);
+  };
+
+  const handlePrev = () => {
+    if (page > 0) setPage(page - 1);
+  };
 
   const exportarPDF = () => {
     const doc = new jsPDF();
@@ -46,6 +60,7 @@ const Reports = ({ sampleFeedbacks = [] }) => {
         <FileText color="#3b82f6" /> Central de Relatórios
       </h2>
 
+      {/* CARD DE EXPORTAÇÃO */}
       <div style={cardStyle}>
         <p style={{ color: "#94a3b8", marginBottom: "20px" }}>
           Selecione a quantidade de registros e o formato desejado para exportação.
@@ -71,6 +86,26 @@ const Reports = ({ sampleFeedbacks = [] }) => {
           </button>
         </div>
       </div>
+
+      {/* COMENTÁRIOS PAGINADOS */}
+      {todasMensagens.length > 0 && (
+        <div style={{ marginTop: "40px" }}>
+          <h3 style={{ marginBottom: "20px" }}>Comentários ({todasMensagens.length})</h3>
+          <ul>
+            {currentComments.map((c, index) => (
+              <li key={index} style={{ marginBottom: "10px" }}>
+                <strong>[{c.sentimento}]</strong> {c.texto} <em>({c.data})</em>
+              </li>
+            ))}
+          </ul>
+
+          <div style={{ marginTop: "20px" }}>
+            <button onClick={handlePrev} disabled={page === 0}>&lt; Voltar</button>
+            <span style={{ margin: "0 10px" }}>Página {page + 1} de {totalPages}</span>
+            <button onClick={handleNext} disabled={page === totalPages - 1}>Avançar &gt;</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
