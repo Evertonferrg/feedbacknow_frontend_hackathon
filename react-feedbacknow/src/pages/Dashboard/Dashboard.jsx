@@ -152,44 +152,508 @@
 // };
 
 // export default Dashboard;
+
+//################################
+// import React, { useState, useEffect } from "react";
+// import axios from "axios";
+// import {
+//   Chart as ChartJS,
+//   CategoryScale,
+//   LinearScale,
+//   PointElement,
+//   LineElement,
+//   ArcElement,
+//   Title,
+//   Tooltip,
+//   Legend,
+//   Filler
+// } from "chart.js";
+// import { Line, Doughnut } from "react-chartjs-2";
+// import { TrendingUp, PieChart, Instagram, Facebook, Home, RefreshCw, LogOut, X } from "lucide-react";
+
+// ChartJS.register(
+//   CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Title, Tooltip, Legend, Filler
+// );
+
+// const Dashboard = () => {
+//   const [dadosBanco, setDadosBanco] = useState([]);
+//   const [carregando, setCarregando] = useState(false);
+//   const [modalAberto, setModalAberto] = useState(false);
+//   const [redeSocialSelecionada, setRedeSocialSelecionada] = useState(null);
+  
+//   // Notificações em tempo real (Badges)
+//   const [novasInsta, setNovasInsta] = useState(0);
+//   const [novasFace, setNovasFace] = useState(0);
+
+//   const buscarDadosDoBanco = async () => {
+//     setCarregando(true);
+//     try {
+//       const response = await axios.get("http://localhost:8080/sentiments?size=999", {
+//         headers: { 'Authorization': `Basic ${btoa("admin:123456")}` }
+//       });
+//       setDadosBanco(response.data.conteudo || response.data || []);
+//     } catch (error) {
+//       console.error("Erro ao buscar dados:", error);
+//     } finally {
+//       setCarregando(false);
+//     }
+//   };
+
+//   useEffect(() => {
+//     buscarDadosDoBanco();
+
+//     // CONECTANDO AO ALERT SERVICE (SSE)
+//     // Certifique-se que esta URL é a mesma do seu @GetMapping no Java
+//     const connectSSE = () => {
+//       const eventSource = new EventSource("http://localhost:8080/alerts/subscribe");
+
+//       eventSource.onmessage = (event) => {
+//         const novoAlerta = JSON.parse(event.data);
+//         console.log("Alerta recebido:", novoAlerta);
+
+//         // Adiciona à lista geral
+//         setDadosBanco((prev) => [novoAlerta, ...prev]);
+
+//         // AVISA OS BOTÕES (Sobe o número no Badge)
+//         const origem = novoAlerta.origem?.toLowerCase();
+//         const texto = novoAlerta.comentario?.toLowerCase() || "";
+
+//         if (origem === "instagram" || texto.includes("instagram")) {
+//           setNovasInsta(prev => prev + 1);
+//         } else if (origem === "facebook" || origem === "page" || texto.includes("facebook")) {
+//           setNovasFace(prev => prev + 1);
+//         }
+//       };
+
+//       eventSource.onerror = () => {
+//         console.log("Erro na conexão SSE. Tentando reconectar em 5s...");
+//         eventSource.close();
+//         setTimeout(connectSSE, 5000);
+//       };
+
+//       return eventSource;
+//     };
+
+//     const sse = connectSSE();
+//     return () => sse.close();
+//   }, []);
+
+//   // --- FUNÇÕES DE CONTROLE ---
+//   const abrirModal = (rede) => {
+//     setRedeSocialSelecionada(rede);
+//     setModalAberto(true);
+//   };
+
+//   const fecharModal = () => {
+//     // RETIRA A INFORMAÇÃO (ZERA) APÓS VISUALIZAR
+//     if (redeSocialSelecionada === "Instagram") setNovasInsta(0);
+//     if (redeSocialSelecionada === "Facebook") setNovasFace(0);
+//     setModalAberto(false);
+//   };
+
+//   // --- PREPARAÇÃO DOS DADOS ---
+//   const totalPos = dadosBanco.filter(f => f.sentimento === "POSITIVO").length;
+//   const totalNeg = dadosBanco.filter(f => f.sentimento === "NEGATIVO").length;
+
+//   // Gráfico de Linha: Positivos vs Negativos
+//   const ultimosRegistros = [...dadosBanco].slice(0, 10).reverse();
+//   const lineData = {
+//     labels: ultimosRegistros.map((_, i) => i + 1),
+//     datasets: [
+//       { label: "Positivos", data: ultimosRegistros.map(f => f.sentimento === "POSITIVO" ? 1 : 0), borderColor: "#10b981", backgroundColor: "rgba(16, 185, 129, 0.1)", fill: true, tension: 0.4 },
+//       { label: "Negativos", data: ultimosRegistros.map(f => f.sentimento === "NEGATIVO" ? 1 : 0), borderColor: "#ef4444", backgroundColor: "rgba(239, 68, 68, 0.1)", fill: true, tension: 0.4 }
+//     ],
+//   };
+
+//   const doughnutData = {
+//     labels: ["Positivos", "Negativos"],
+//     datasets: [{ data: [totalPos, totalNeg], backgroundColor: ["#10b981", "#ef4444"], borderWidth: 0 }],
+//   };
+
+//   const mensagensFiltradas = dadosBanco.filter(f => {
+//     const origem = f.origem?.toLowerCase();
+//     const texto = f.comentario?.toLowerCase() || "";
+//     if (redeSocialSelecionada === "Instagram") return origem === "instagram" || texto.includes("instagram");
+//     if (redeSocialSelecionada === "Facebook") return origem === "facebook" || origem === "page" || texto.includes("facebook");
+//     return false;
+//   });
+
+//   return (
+//     <div style={{ padding: "30px", color: "white", minHeight: "100vh", backgroundColor: "#0f172a", position: "relative" }}>
+      
+//       {/* HEADER DE ÍCONES COM BADGES DE AVISO */}
+//       <div style={{ position: "absolute", top: "30px", right: "30px", display: "flex", gap: "15px", zIndex: 100 }}>
+//         <button onClick={buscarDadosDoBanco} style={btnIconStyle}>
+//           <RefreshCw size={22} color="#94a3b8" className={carregando ? "animate-spin" : ""} />
+//         </button>
+        
+//         <button onClick={() => abrirModal("Instagram")} style={btnIconStyle}>
+//           <Instagram color="#E4405F" size={24} />
+//           {novasInsta > 0 && <span style={badgeStyle}>{novasInsta}</span>}
+//         </button>
+
+//         <button onClick={() => abrirModal("Facebook")} style={btnIconStyle}>
+//           <Facebook color="#1877F2" size={24} />
+//           {novasFace > 0 && <span style={badgeStyle}>{novasFace}</span>}
+//         </button>
+
+//         <button onClick={() => window.location.href = "/login"} style={{...btnIconStyle, border: "1px solid #ef4444"}}>
+//           <LogOut size={22} color="#ef4444" />
+//         </button>
+//       </div>
+
+//       <button onClick={() => window.location.href = "/"} style={btnHomeStyle}><Home size={18} /> Home</button>
+//       <h2 style={{ marginBottom: "25px", fontWeight: "600" }}>Dashboard Feedback Real-Time</h2>
+
+//       <div style={{ display: "flex", gap: "20px", marginBottom: "30px" }}>
+//         <div style={{ ...cardResumo, borderLeft: "6px solid #3b82f6" }}>
+//           <span style={labelCard}>Total Analisado</span>
+//           <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "#3b82f6" }}>{totalPos + totalNeg}</div>
+//         </div>
+//         <div style={{ ...cardResumo, borderLeft: "6px solid #10b981" }}>
+//           <span style={labelCard}>Positivos</span>
+//           <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "#10b981" }}>{totalPos}</div>
+//         </div>
+//         <div style={{ ...cardResumo, borderLeft: "6px solid #ef4444" }}>
+//           <span style={labelCard}>Negativos</span>
+//           <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "#ef4444" }}>{totalNeg}</div>
+//         </div>
+//       </div>
+
+//       <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
+//         <div style={cardGrafico}>
+//           <div style={tituloGrafico}><TrendingUp size={18} /> Histórico de Sentimentos</div>
+//           <div style={{ height: "250px" }}><Line data={lineData} options={chartOptions} /></div>
+//         </div>
+//         <div style={{ ...cardGrafico, flex: "0 1 350px" }}>
+//           <div style={tituloGrafico}><PieChart size={18} /> Proporção</div>
+//           <div style={{ height: "250px" }}><Doughnut data={doughnutData} options={chartOptions} /></div>
+//         </div>
+//       </div>
+
+//       {modalAberto && (
+//         <div style={modalOverlay}>
+//           <div style={modalContent}>
+//             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
+//               <h3 style={{ margin: 0 }}>Visualizando: {redeSocialSelecionada}</h3>
+//               <X size={24} style={{ cursor: "pointer" }} onClick={fecharModal} />
+//             </div>
+//             <div style={{ maxHeight: "400px", overflowY: "auto" }}>
+//               {mensagensFiltradas.length > 0 ? mensagensFiltradas.map((m, i) => (
+//                 <div key={i} style={mensagemItem}>
+//                   <p style={{ margin: "0 0 5px 0" }}>{m.comentario}</p>
+//                   <small style={{ color: m.sentimento === "POSITIVO" ? "#10b981" : "#ef4444", fontWeight: 'bold' }}>
+//                     {m.sentimento}
+//                   </small>
+//                 </div>
+//               )) : <p style={{ textAlign: 'center', color: '#94a3b8' }}>Nenhuma mensagem nova.</p>}
+//             </div>
+//           </div>
+//         </div>
+//       )}
+//     </div>
+//   );
+// };
+
+// // ESTILOS (MANTIDOS)
+// const btnIconStyle = { width: "50px", height: "50px", borderRadius: "12px", backgroundColor: "#1e293b", border: "1px solid #334155", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", position: "relative" };
+// const badgeStyle = { position: "absolute", top: "-5px", right: "-5px", backgroundColor: "#ef4444", color: "white", borderRadius: "50%", minWidth: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "bold" };
+// const btnHomeStyle = { background: "#1e293b", border: "1px solid #334155", color: "#94a3b8", padding: "8px 16px", borderRadius: "6px", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", marginBottom: "20px" };
+// const cardResumo = { flex: "1", background: "#1e293b", padding: "25px", borderRadius: "12px", border: "1px solid #334155" };
+// const cardGrafico = { flex: "1", minWidth: "400px", background: "#1e293b", padding: "25px", borderRadius: "15px", border: "1px solid #334155" };
+// const labelCard = { fontSize: "0.85rem", color: "#94a3b8", textTransform: "uppercase" };
+// const tituloGrafico = { display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px", color: "#cbd5e1" };
+// const modalOverlay = { position: "fixed", top: 0, left: 0, width: "100%", height: "100%", backgroundColor: "rgba(0,0,0,0.85)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 };
+// const modalContent = { backgroundColor: "#1e293b", padding: "30px", borderRadius: "20px", width: "450px", border: "1px solid #334155" };
+// const mensagemItem = { padding: "15px", borderBottom: "1px solid #334155", backgroundColor: "#0f172a", marginBottom: "10px", borderRadius: "8px" };
+// const chartOptions = { maintainAspectRatio: false, plugins: { legend: { labels: { color: '#94a3b8' } } } };
+
+// export default Dashboard;
+//###################################
+//####################################
+// import React, { useState, useEffect } from "react";
+// import axios from "axios";
+// import {
+//   Chart as ChartJS,
+//   CategoryScale,
+//   LinearScale,
+//   PointElement,
+//   LineElement,
+//   ArcElement,
+//   Title,
+//   Tooltip,
+//   Legend,
+//   Filler
+// } from "chart.js";
+// import { Line, Doughnut } from "react-chartjs-2";
+// import { TrendingUp, PieChart, Instagram, Facebook, Home, RefreshCw, LogOut, X } from "lucide-react";
+
+// ChartJS.register(
+//   CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Title, Tooltip, Legend, Filler
+// );
+
+// const Dashboard = () => {
+//   const [dadosBanco, setDadosBanco] = useState([]);
+//   const [carregando, setCarregando] = useState(false);
+//   const [modalAberto, setModalAberto] = useState(false);
+//   const [redeSocialSelecionada, setRedeSocialSelecionada] = useState(null);
+  
+//   // ESTADOS PARA AS NOTIFICAÇÕES (BADGES)
+//   const [novasInsta, setNovasInsta] = useState(0);
+//   const [novasFace, setNovasFace] = useState(0);
+
+//   // 1. BUSCA INICIAL DE DADOS (HISTÓRICO)
+//   const buscarDadosDoBanco = async () => {
+//     setCarregando(true);
+//     try {
+//       const response = await axios.get("http://localhost:8080/sentiments?size=999", {
+//         headers: { 'Authorization': `Basic ${btoa("admin:123456")}` }
+//       });
+//       const lista = response.data.conteudo || response.data || [];
+//       setDadosBanco(lista);
+//     } catch (error) {
+//       console.error("Erro ao buscar dados:", error);
+//     } finally {
+//       setCarregando(false);
+//     }
+//   };
+
+//   // 2. CONEXÃO REAL-TIME E LÓGICA DE NOTIFICAÇÃO
+//   useEffect(() => {
+//     buscarDadosDoBanco();
+
+//     const connectSSE = () => {
+//       // URL que bate com seu AlertController.java
+//       const eventSource = new EventSource("http://localhost:8080/notifications/alerts");
+
+//       eventSource.onmessage = (event) => {
+//         const novoAlerta = JSON.parse(event.data);
+//         console.log("DADOS BRUTOS RECEBIDOS:", novoAlerta);
+
+//         // Atualiza a lista geral para os gráficos
+//         setDadosBanco((prev) => [novoAlerta, ...prev]);
+
+//         // --- LÓGICA DE DETECÇÃO PARA O BADGE ---
+//         const origem = (novoAlerta.origem || novoAlerta.object || "").toLowerCase();
+//         const texto = (novoAlerta.comentario || "").toLowerCase();
+
+//         if (origem === "instagram" || texto.includes("instagram") || texto.includes("odiei")) {
+//           console.log("🔔 Nova notificação: Instagram");
+//           setNovasInsta(prev => prev + 1);
+//         } else {
+//           console.log("🔔 Nova notificação: Facebook");
+//           setNovasFace(prev => prev + 1);
+//         }
+//       };
+
+//       eventSource.onerror = () => {
+//         console.log("Conexão SSE perdida. Tentando reconectar...");
+//         eventSource.close();
+//         setTimeout(connectSSE, 5000);
+//       };
+
+//       return eventSource;
+//     };
+
+//     const sse = connectSSE();
+//     return () => sse.close();
+//   }, []);
+
+//   // 3. CONTROLE DOS MODAIS
+//   const abrirModal = (rede) => {
+//     setRedeSocialSelecionada(rede);
+//     setModalAberto(true);
+//   };
+
+//   const fecharModal = () => {
+//     // Ao fechar o modal daquela rede, limpamos a notificação
+//     if (redeSocialSelecionada === "Instagram") setNovasInsta(0);
+//     if (redeSocialSelecionada === "Facebook") setNovasFace(0);
+//     setModalAberto(false);
+//   };
+
+//   // 4. PREPARAÇÃO DOS GRÁFICOS
+//   const ultimos15 = [...dadosBanco].slice(0, 15).reverse();
+//   const lineData = {
+//     labels: ultimos15.map((f, i) => {
+//         if (f.criadoEm) {
+//             const d = new Date(f.criadoEm);
+//             return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+//         }
+//         return `T-${15-i}`;
+//     }),
+//     datasets: [
+//       { 
+//         label: "Positivos", 
+//         data: ultimos15.map(f => f.sentimento === "POSITIVO" ? 1 : 0), 
+//         borderColor: "#10b981", 
+//         backgroundColor: "rgba(16, 185, 129, 0.2)", 
+//         fill: true, tension: 0.4, pointRadius: 3 
+//       },
+//       { 
+//         label: "Negativos", 
+//         data: ultimos15.map(f => f.sentimento === "NEGATIVO" ? 1 : 0), 
+//         borderColor: "#ef4444", 
+//         backgroundColor: "rgba(239, 68, 68, 0.2)", 
+//         fill: true, tension: 0.4, pointRadius: 3 
+//       }
+//     ],
+//   };
+
+//   const mensagensFiltradas = dadosBanco.filter(f => {
+//     const origem = (f.origem || "").toLowerCase();
+//     const texto = (f.comentario || "").toLowerCase();
+//     if (redeSocialSelecionada === "Instagram") return origem === "instagram" || texto.includes("instagram") || texto.includes("odiei");
+//     if (redeSocialSelecionada === "Facebook") return origem === "facebook" || texto.includes("facebook") || (!origem && !texto.includes("odiei"));
+//     return false;
+//   });
+
+//   return (
+//     <div style={{ padding: "30px", color: "white", minHeight: "100vh", backgroundColor: "#0f172a", position: "relative" }}>
+      
+//       {/* ÍCONES DE NOTIFICAÇÃO (CANTO SUPERIOR DIREITO) */}
+//       <div style={{ position: "absolute", top: "30px", right: "30px", display: "flex", gap: "15px", zIndex: 100 }}>
+//         <button onClick={buscarDadosDoBanco} style={btnIconStyle}>
+//           <RefreshCw size={22} color="#94a3b8" className={carregando ? "animate-spin" : ""} />
+//         </button>
+        
+//         <button onClick={() => abrirModal("Instagram")} style={btnIconStyle}>
+//           <Instagram color="#E4405F" size={24} />
+//           {novasInsta > 0 && <span style={badgeStyle}>{novasInsta}</span>}
+//         </button>
+
+//         <button onClick={() => abrirModal("Facebook")} style={btnIconStyle}>
+//           <Facebook color="#1877F2" size={24} />
+//           {novasFace > 0 && <span style={badgeStyle}>{novasFace}</span>}
+//         </button>
+
+//         <button onClick={() => window.location.href = "/login"} style={{...btnIconStyle, border: "1px solid #ef4444"}}>
+//           <LogOut size={22} color="#ef4444" />
+//         </button>
+//       </div>
+
+//       <button onClick={() => window.location.href = "/"} style={btnHomeStyle}><Home size={18} /> Home</button>
+//       <h2 style={{ marginBottom: "25px", fontWeight: "600" }}>Dashboard Analítico</h2>
+
+//       {/* CARDS DE RESUMO */}
+//       <div style={{ display: "flex", gap: "20px", marginBottom: "30px" }}>
+//         <div style={{ ...cardResumo, borderLeft: "6px solid #3b82f6" }}>
+//           <span style={labelCard}>Total</span>
+//           <div style={{ fontSize: "2.5rem", fontWeight: "bold" }}>{dadosBanco.length}</div>
+//         </div>
+//         <div style={{ ...cardResumo, borderLeft: "6px solid #10b981" }}>
+//           <span style={labelCard}>Positivos</span>
+//           <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "#10b981" }}>{dadosBanco.filter(f => f.sentimento === "POSITIVO").length}</div>
+//         </div>
+//         <div style={{ ...cardResumo, borderLeft: "6px solid #ef4444" }}>
+//           <span style={labelCard}>Negativos</span>
+//           <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "#ef4444" }}>{dadosBanco.filter(f => f.sentimento === "NEGATIVO").length}</div>
+//         </div>
+//       </div>
+
+//       {/* ÁREA DE GRÁFICOS */}
+//       <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
+//         <div style={{ ...cardGrafico, flex: "2" }}>
+//           <div style={tituloGrafico}><TrendingUp size={18} /> Evolução de Sentimentos</div>
+//           <div style={{ height: "300px" }}><Line data={lineData} options={chartOptions} /></div>
+//         </div>
+//         <div style={{ ...cardGrafico, flex: "1" }}>
+//           <div style={tituloGrafico}><PieChart size={18} /> Proporção Geral</div>
+//           <div style={{ height: "300px" }}>
+//             <Doughnut 
+//               data={{
+//                 labels: ["Positivos", "Negativos"],
+//                 datasets: [{ 
+//                     data: [
+//                         dadosBanco.filter(f => f.sentimento === "POSITIVO").length, 
+//                         dadosBanco.filter(f => f.sentimento === "NEGATIVO").length
+//                     ], 
+//                     backgroundColor: ["#10b981", "#ef4444"], borderWidth: 0 
+//                 }]
+//               }} 
+//               options={{ maintainAspectRatio: false, plugins: { legend: { labels: { color: "#94a3b8" } } } }}
+//             />
+//           </div>
+//         </div>
+//       </div>
+
+//       {/* MODAL DE ALERTAS */}
+//       {modalAberto && (
+//         <div style={modalOverlay}>
+//           <div style={modalContent}>
+//             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px", alignItems: "center" }}>
+//               <h3 style={{ margin: 0 }}>Feed: {redeSocialSelecionada}</h3>
+//               <X size={24} style={{ cursor: "pointer" }} onClick={fecharModal} />
+//             </div>
+//             <div style={{ maxHeight: "400px", overflowY: "auto" }}>
+//               {mensagensFiltradas.length > 0 ? mensagensFiltradas.map((m, i) => (
+//                 <div key={i} style={mensagemItem}>
+//                   <p style={{ margin: "0 0 5px 0", fontSize: "14px" }}>{m.comentario}</p>
+//                   <span style={{ color: m.sentimento === "POSITIVO" ? "#10b981" : "#ef4444", fontSize: "12px", fontWeight: "bold" }}>
+//                     {m.sentimento}
+//                   </span>
+//                 </div>
+//               )) : <p style={{ textAlign: "center", color: "#94a3b8" }}>Nenhum dado capturado.</p>}
+//             </div>
+//           </div>
+//         </div>
+//       )}
+//     </div>
+//   );
+// };
+
+// // ESTILOS (CSS-IN-JS)
+// const btnIconStyle = { width: "50px", height: "50px", borderRadius: "12px", backgroundColor: "#1e293b", border: "1px solid #334155", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", position: "relative" };
+// const badgeStyle = { position: "absolute", top: "-5px", right: "-5px", backgroundColor: "#ef4444", color: "white", borderRadius: "50%", minWidth: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: "bold", border: "2px solid #0f172a" };
+// const btnHomeStyle = { background: "#1e293b", border: "1px solid #334155", color: "#94a3b8", padding: "8px 16px", borderRadius: "6px", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", marginBottom: "20px" };
+// const cardResumo = { flex: "1", background: "#1e293b", padding: "25px", borderRadius: "12px", border: "1px solid #334155" };
+// const cardGrafico = { background: "#1e293b", padding: "25px", borderRadius: "15px", border: "1px solid #334155", minWidth: "350px" };
+// const labelCard = { fontSize: "0.85rem", color: "#94a3b8", textTransform: "uppercase" };
+// const tituloGrafico = { display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px", color: "#cbd5e1" };
+// const modalOverlay = { position: "fixed", top: 0, left: 0, width: "100%", height: "100%", backgroundColor: "rgba(0,0,0,0.85)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 };
+// const modalContent = { backgroundColor: "#1e293b", padding: "30px", borderRadius: "20px", width: "450px", border: "1px solid #334155" };
+// const mensagemItem = { padding: "15px", borderBottom: "1px solid #334155", backgroundColor: "#0f172a", marginBottom: "10px", borderRadius: "8px" };
+
+// const chartOptions = { 
+//   maintainAspectRatio: false, 
+//   plugins: { legend: { labels: { color: '#94a3b8' } } },
+//   scales: {
+//     y: { beginAtZero: true, max: 1.5, ticks: { display: false }, grid: { color: "#334155" } },
+//     x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+//   }
+// };
+
+// export default Dashboard;
+
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
+  Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, 
+  ArcElement, Title, Tooltip, Legend, Filler
 } from "chart.js";
 import { Line, Doughnut } from "react-chartjs-2";
 import { TrendingUp, PieChart, Instagram, Facebook, Home, RefreshCw, LogOut, X } from "lucide-react";
 
-ChartJS.register(
-  CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Title, Tooltip, Legend, Filler
-);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Title, Tooltip, Legend, Filler);
 
 const Dashboard = () => {
   const [dadosBanco, setDadosBanco] = useState([]);
   const [carregando, setCarregando] = useState(false);
   const [modalAberto, setModalAberto] = useState(false);
-  const [redeSocialSelecionada, setRedeSocialSelecionada] = useState(null);
+  const [filtroSelecionado, setFiltroSelecionado] = useState(null); // 'POSITIVO', 'NEGATIVO', 'Instagram' ou 'Facebook'
   
-  // Notificações em tempo real (Badges)
   const [novasInsta, setNovasInsta] = useState(0);
   const [novasFace, setNovasFace] = useState(0);
 
+  // 1️⃣ Busca inicial
   const buscarDadosDoBanco = async () => {
     setCarregando(true);
     try {
-      const response = await axios.get("http://localhost:8080/sentiments?size=999", {
+      const response = await axios.get("http://localhost:8080/sentiments?size=10000", {
         headers: { 'Authorization': `Basic ${btoa("admin:123456")}` }
       });
-      setDadosBanco(response.data.conteudo || response.data || []);
+      const lista = response.data.conteudo || response.data.content || response.data || [];
+      setDadosBanco(lista);
     } catch (error) {
       console.error("Erro ao buscar dados:", error);
     } finally {
@@ -197,173 +661,204 @@ const Dashboard = () => {
     }
   };
 
+  // 2️⃣ SSE + notificações reais
   useEffect(() => {
     buscarDadosDoBanco();
 
-    // CONECTANDO AO ALERT SERVICE (SSE)
-    // Certifique-se que esta URL é a mesma do seu @GetMapping no Java
-    const connectSSE = () => {
-      const eventSource = new EventSource("http://localhost:8080/alerts/subscribe");
+    // pedir permissão para notificações
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
 
-      eventSource.onmessage = (event) => {
-        const novoAlerta = JSON.parse(event.data);
-        console.log("Alerta recebido:", novoAlerta);
+    const eventSource = new EventSource("http://localhost:8080/notifications/alerts");
 
-        // Adiciona à lista geral
-        setDadosBanco((prev) => [novoAlerta, ...prev]);
+    eventSource.onmessage = (event) => {
+      const novoAlerta = JSON.parse(event.data);
 
-        // AVISA OS BOTÕES (Sobe o número no Badge)
-        const origem = novoAlerta.origem?.toLowerCase();
-        const texto = novoAlerta.comentario?.toLowerCase() || "";
+      // Atualiza dados gerais
+      setDadosBanco((prev) => [novoAlerta, ...prev]);
 
-        if (origem === "instagram" || texto.includes("instagram")) {
-          setNovasInsta(prev => prev + 1);
-        } else if (origem === "facebook" || origem === "page" || texto.includes("facebook")) {
-          setNovasFace(prev => prev + 1);
-        }
-      };
+      const origem = (novoAlerta.origem || "").toLowerCase();
 
-      eventSource.onerror = () => {
-        console.log("Erro na conexão SSE. Tentando reconectar em 5s...");
-        eventSource.close();
-        setTimeout(connectSSE, 5000);
-      };
+      // Atualiza badges
+      if (origem === "instagram") setNovasInsta(prev => prev + 1);
+      else if (origem === "facebook") setNovasFace(prev => prev + 1);
 
-      return eventSource;
+      // 🔔 NOTIFICAÇÃO REAL DO NAVEGADOR
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("📩 Novo feedback recebido", {
+          body: novoAlerta.comentario || "Nova mensagem detectada",
+          icon: origem === "instagram" ? "/instagram.png" : "/facebook.png"
+        });
+      }
     };
 
-    const sse = connectSSE();
-    return () => sse.close();
+    eventSource.onerror = () => {
+      eventSource.close();
+      setTimeout(() => {
+        // reconecta automaticamente
+        window.location.reload();
+      }, 5000);
+    };
+
+    return () => eventSource.close();
   }, []);
 
-  // --- FUNÇÕES DE CONTROLE ---
-  const abrirModal = (rede) => {
-    setRedeSocialSelecionada(rede);
+  // 3️⃣ Controle de modal
+  const abrirModal = (tipo) => {
+    setFiltroSelecionado(tipo);
     setModalAberto(true);
   };
 
   const fecharModal = () => {
-    // RETIRA A INFORMAÇÃO (ZERA) APÓS VISUALIZAR
-    if (redeSocialSelecionada === "Instagram") setNovasInsta(0);
-    if (redeSocialSelecionada === "Facebook") setNovasFace(0);
+    if (filtroSelecionado === "Instagram") setNovasInsta(0);
+    if (filtroSelecionado === "Facebook") setNovasFace(0);
     setModalAberto(false);
   };
 
-  // --- PREPARAÇÃO DOS DADOS ---
-  const totalPos = dadosBanco.filter(f => f.sentimento === "POSITIVO").length;
-  const totalNeg = dadosBanco.filter(f => f.sentimento === "NEGATIVO").length;
-
-  // Gráfico de Linha: Positivos vs Negativos
-  const ultimosRegistros = [...dadosBanco].slice(0, 10).reverse();
+  // 4️⃣ Gráficos
+  const ultimos15 = [...dadosBanco].slice(0, 15).reverse();
   const lineData = {
-    labels: ultimosRegistros.map((_, i) => i + 1),
+    labels: ultimos15.map((f, i) => {
+        if (f.criadoEm) {
+            const d = new Date(f.criadoEm);
+            return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+        }
+        return `T-${15-i}`;
+    }),
     datasets: [
-      { label: "Positivos", data: ultimosRegistros.map(f => f.sentimento === "POSITIVO" ? 1 : 0), borderColor: "#10b981", backgroundColor: "rgba(16, 185, 129, 0.1)", fill: true, tension: 0.4 },
-      { label: "Negativos", data: ultimosRegistros.map(f => f.sentimento === "NEGATIVO" ? 1 : 0), borderColor: "#ef4444", backgroundColor: "rgba(239, 68, 68, 0.1)", fill: true, tension: 0.4 }
+      { 
+        label: "Positivos", 
+        data: ultimos15.map(f => f.sentimento === "POSITIVO" ? 1 : 0), 
+        borderColor: "#10b981", backgroundColor: "rgba(16, 185, 129, 0.2)", fill: true, tension: 0.4, pointRadius: 3 
+      },
+      { 
+        label: "Negativos", 
+        data: ultimos15.map(f => f.sentimento === "NEGATIVO" ? 1 : 0), 
+        borderColor: "#ef4444", backgroundColor: "rgba(239, 68, 68, 0.2)", fill: true, tension: 0.4, pointRadius: 3 
+      }
     ],
   };
 
-  const doughnutData = {
-    labels: ["Positivos", "Negativos"],
-    datasets: [{ data: [totalPos, totalNeg], backgroundColor: ["#10b981", "#ef4444"], borderWidth: 0 }],
-  };
-
   const mensagensFiltradas = dadosBanco.filter(f => {
-    const origem = f.origem?.toLowerCase();
-    const texto = f.comentario?.toLowerCase() || "";
-    if (redeSocialSelecionada === "Instagram") return origem === "instagram" || texto.includes("instagram");
-    if (redeSocialSelecionada === "Facebook") return origem === "facebook" || origem === "page" || texto.includes("facebook");
+    const origem = (f.origem || "").toLowerCase();
+    const texto = (f.comentario || "").toLowerCase();
+    if (filtroSelecionado === "Instagram") return origem === "instagram" || texto.includes("instagram");
+    if (filtroSelecionado === "Facebook") return origem === "facebook" || texto.includes("facebook");
     return false;
   });
 
   return (
     <div style={{ padding: "30px", color: "white", minHeight: "100vh", backgroundColor: "#0f172a", position: "relative" }}>
       
-      {/* HEADER DE ÍCONES COM BADGES DE AVISO */}
+      {/* HEADER ÍCONES */}
       <div style={{ position: "absolute", top: "30px", right: "30px", display: "flex", gap: "15px", zIndex: 100 }}>
         <button onClick={buscarDadosDoBanco} style={btnIconStyle}>
           <RefreshCw size={22} color="#94a3b8" className={carregando ? "animate-spin" : ""} />
         </button>
-        
         <button onClick={() => abrirModal("Instagram")} style={btnIconStyle}>
           <Instagram color="#E4405F" size={24} />
           {novasInsta > 0 && <span style={badgeStyle}>{novasInsta}</span>}
         </button>
-
         <button onClick={() => abrirModal("Facebook")} style={btnIconStyle}>
           <Facebook color="#1877F2" size={24} />
           {novasFace > 0 && <span style={badgeStyle}>{novasFace}</span>}
         </button>
-
         <button onClick={() => window.location.href = "/login"} style={{...btnIconStyle, border: "1px solid #ef4444"}}>
           <LogOut size={22} color="#ef4444" />
         </button>
       </div>
 
       <button onClick={() => window.location.href = "/"} style={btnHomeStyle}><Home size={18} /> Home</button>
-      <h2 style={{ marginBottom: "25px", fontWeight: "600" }}>Dashboard Feedback Real-Time</h2>
+      <h2 style={{ marginBottom: "25px", fontWeight: "600" }}>Dashboard Analítico</h2>
 
+      {/* CARDS RESUMO */}
       <div style={{ display: "flex", gap: "20px", marginBottom: "30px" }}>
         <div style={{ ...cardResumo, borderLeft: "6px solid #3b82f6" }}>
-          <span style={labelCard}>Total Analisado</span>
-          <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "#3b82f6" }}>{totalPos + totalNeg}</div>
+          <span style={labelCard}>Total</span>
+          <div style={{ fontSize: "2.5rem", fontWeight: "bold" }}>{dadosBanco.length}</div>
         </div>
         <div style={{ ...cardResumo, borderLeft: "6px solid #10b981" }}>
           <span style={labelCard}>Positivos</span>
-          <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "#10b981" }}>{totalPos}</div>
+          <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "#10b981" }}>{dadosBanco.filter(f => f.sentimento === "POSITIVO").length}</div>
         </div>
         <div style={{ ...cardResumo, borderLeft: "6px solid #ef4444" }}>
           <span style={labelCard}>Negativos</span>
-          <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "#ef4444" }}>{totalNeg}</div>
+          <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "#ef4444" }}>{dadosBanco.filter(f => f.sentimento === "NEGATIVO").length}</div>
         </div>
       </div>
 
+      {/* GRÁFICOS */}
       <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
-        <div style={cardGrafico}>
-          <div style={tituloGrafico}><TrendingUp size={18} /> Histórico de Sentimentos</div>
-          <div style={{ height: "250px" }}><Line data={lineData} options={chartOptions} /></div>
+        <div style={{ ...cardGrafico, flex: "2" }}>
+          <div style={tituloGrafico}><TrendingUp size={18} /> Evolução de Sentimentos</div>
+          <div style={{ height: "300px" }}><Line data={lineData} options={chartOptions} /></div>
         </div>
-        <div style={{ ...cardGrafico, flex: "0 1 350px" }}>
-          <div style={tituloGrafico}><PieChart size={18} /> Proporção</div>
-          <div style={{ height: "250px" }}><Doughnut data={doughnutData} options={chartOptions} /></div>
+        <div style={{ ...cardGrafico, flex: "1" }}>
+          <div style={tituloGrafico}><PieChart size={18} /> Proporção Geral</div>
+          <div style={{ height: "300px" }}>
+            <Doughnut 
+              data={{
+                labels: ["Positivos", "Negativos"],
+                datasets: [{ 
+                  data: [
+                    dadosBanco.filter(f => f.sentimento === "POSITIVO").length, 
+                    dadosBanco.filter(f => f.sentimento === "NEGATIVO").length
+                  ], 
+                  backgroundColor: ["#10b981", "#ef4444"], borderWidth: 0 
+                }]
+              }} 
+              options={{ maintainAspectRatio: false, plugins: { legend: { labels: { color: "#94a3b8" } } } }}
+            />
+          </div>
         </div>
       </div>
 
+      {/* MODAL */}
       {modalAberto && (
         <div style={modalOverlay}>
           <div style={modalContent}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
-              <h3 style={{ margin: 0 }}>Visualizando: {redeSocialSelecionada}</h3>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px", alignItems: "center" }}>
+              <h3 style={{ margin: 0 }}>Feed: {filtroSelecionado}</h3>
               <X size={24} style={{ cursor: "pointer" }} onClick={fecharModal} />
             </div>
             <div style={{ maxHeight: "400px", overflowY: "auto" }}>
               {mensagensFiltradas.length > 0 ? mensagensFiltradas.map((m, i) => (
                 <div key={i} style={mensagemItem}>
-                  <p style={{ margin: "0 0 5px 0" }}>{m.comentario}</p>
-                  <small style={{ color: m.sentimento === "POSITIVO" ? "#10b981" : "#ef4444", fontWeight: 'bold' }}>
+                  <p style={{ margin: "0 0 5px 0", fontSize: "14px" }}>{m.comentario}</p>
+                  <span style={{ color: m.sentimento === "POSITIVO" ? "#10b981" : "#ef4444", fontSize: "12px", fontWeight: "bold" }}>
                     {m.sentimento}
-                  </small>
+                  </span>
                 </div>
-              )) : <p style={{ textAlign: 'center', color: '#94a3b8' }}>Nenhuma mensagem nova.</p>}
+              )) : <p style={{ textAlign: "center", color: "#94a3b8" }}>Nenhum dado capturado.</p>}
             </div>
           </div>
         </div>
       )}
+
     </div>
   );
 };
 
-// ESTILOS (MANTIDOS)
+// --- ESTILOS ---
 const btnIconStyle = { width: "50px", height: "50px", borderRadius: "12px", backgroundColor: "#1e293b", border: "1px solid #334155", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", position: "relative" };
-const badgeStyle = { position: "absolute", top: "-5px", right: "-5px", backgroundColor: "#ef4444", color: "white", borderRadius: "50%", minWidth: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "bold" };
+const badgeStyle = { position: "absolute", top: "-5px", right: "-5px", backgroundColor: "#ef4444", color: "white", borderRadius: "50%", minWidth: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: "bold", border: "2px solid #0f172a" };
 const btnHomeStyle = { background: "#1e293b", border: "1px solid #334155", color: "#94a3b8", padding: "8px 16px", borderRadius: "6px", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", marginBottom: "20px" };
 const cardResumo = { flex: "1", background: "#1e293b", padding: "25px", borderRadius: "12px", border: "1px solid #334155" };
-const cardGrafico = { flex: "1", minWidth: "400px", background: "#1e293b", padding: "25px", borderRadius: "15px", border: "1px solid #334155" };
+const cardGrafico = { background: "#1e293b", padding: "25px", borderRadius: "15px", border: "1px solid #334155", minWidth: "350px" };
 const labelCard = { fontSize: "0.85rem", color: "#94a3b8", textTransform: "uppercase" };
 const tituloGrafico = { display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px", color: "#cbd5e1" };
 const modalOverlay = { position: "fixed", top: 0, left: 0, width: "100%", height: "100%", backgroundColor: "rgba(0,0,0,0.85)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 };
 const modalContent = { backgroundColor: "#1e293b", padding: "30px", borderRadius: "20px", width: "450px", border: "1px solid #334155" };
 const mensagemItem = { padding: "15px", borderBottom: "1px solid #334155", backgroundColor: "#0f172a", marginBottom: "10px", borderRadius: "8px" };
-const chartOptions = { maintainAspectRatio: false, plugins: { legend: { labels: { color: '#94a3b8' } } } };
+
+const chartOptions = { 
+  maintainAspectRatio: false, 
+  plugins: { legend: { labels: { color: '#94a3b8' } } },
+  scales: {
+    y: { beginAtZero: true, max: 1.5, ticks: { display: false }, grid: { color: "#334155" } },
+    x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+  }
+};
 
 export default Dashboard;
