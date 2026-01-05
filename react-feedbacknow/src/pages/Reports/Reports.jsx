@@ -1,119 +1,177 @@
-import React, { useState } from "react";
-import { FileText, Download, Table } from "lucide-react";
-import jsPDF from "jspdf";
-import "jspdf-autotable";
-import * as XLSX from "xlsx";
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { FileText, Download, Home, CheckSquare, Square, ListOrdered, RefreshCw } from 'lucide-react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
-const Reports = ({ sampleFeedbacks = [] }) => {
-  const [qtd, setQtd] = useState(10);
-  const [page, setPage] = useState(0);
-  const pageSize = 20; // quantidade de comentários por página
+export default function Relatorios() {
+  const [dados, setDados] = useState([]);
+  const [quantidade, setQuantidade] = useState(10);
+  const [carregando, setCarregando] = useState(false);
+  const [colunas, setColunas] = useState({
+    id: true,
+    comentario: true,
+    sentimento: true,
+    criadoEm: true
+  });
 
-  // Pega todas as mensagens brutas
-  const todasMensagens = sampleFeedbacks.flatMap(dia => 
-    dia.mensagens.map(m => ({ 
-      data: dia.date, 
-      sentimento: m.sentiment === 'pos' ? 'Positivo' : 'Negativo', 
-      texto: m.text 
-    }))
-  );
+  const authHeader = btoa("admin:123456");
 
-  const totalPages = Math.ceil(todasMensagens.length / pageSize);
-
-  const currentComments = todasMensagens.slice(page * pageSize, (page + 1) * pageSize);
-
-  const handleNext = () => {
-    if (page < totalPages - 1) setPage(page + 1);
+  // Ajustado para aceitar a quantidade e buscar no banco
+  const buscarDados = async (qtd) => {
+    setCarregando(true);
+    try {
+      // Se qtd for 0 (Todos), mandamos um número alto para o Pageable do Java
+      const limit = qtd === 0 ? 99999 : qtd; 
+      const response = await axios.get(`http://localhost:8080/sentiments?size=${limit}`, {
+        headers: { 'Authorization': `Basic ${authHeader}` }
+      });
+      setDados(response.data.conteudo || []);
+    } catch (error) {
+      console.error("Erro ao carregar dados para relatório", error);
+    } finally {
+      setCarregando(false);
+    }
   };
 
-  const handlePrev = () => {
-    if (page > 0) setPage(page - 1);
+  useEffect(() => {
+    buscarDados(quantidade);
+  }, []);
+
+  const toggleColuna = (col) => {
+    setColunas(prev => ({ ...prev, [col]: !prev[col] }));
   };
 
-  const exportarPDF = () => {
+  const gerarPDF = () => {
     const doc = new jsPDF();
-    doc.text("Relatório de Feedbacks - FeedbackNow", 14, 15);
+    doc.setFontSize(18);
+    doc.text("Relatório de Sentimentos - FeedBackNow", 14, 20);
     
-    const dadosTabela = todasMensagens.slice(0, qtd).map(m => [m.data, m.sentimento, m.texto]);
+    const head = [];
+    if (colunas.id) head.push("ID");
+    if (colunas.comentario) head.push("Comentário");
+    if (colunas.sentimento) head.push("Sentimento");
+    if (colunas.criadoEm) head.push("Data");
 
-    doc.autoTable({
-      head: [['Dia', 'Sentimento', 'Comentário']],
-      body: dadosTabela,
-      startY: 25,
-      theme: 'grid'
+    const body = dados.map(item => {
+      const linha = [];
+      if (colunas.id) linha.push(item.id);
+      if (colunas.comentario) linha.push(item.comentario);
+      if (colunas.sentimento) linha.push(item.sentimento);
+      if (colunas.criadoEm) linha.push(new Date(item.criadoEm).toLocaleDateString('pt-BR'));
+      return linha;
     });
 
-    doc.save("relatorio-feedbacks.pdf");
-  };
+    doc.autoTable({
+      head: [head],
+      body: body,
+      startY: 30,
+      theme: 'striped'
+    });
 
-  const exportarExcel = () => {
-    const dadosExportar = todasMensagens.slice(0, qtd);
-    const worksheet = XLSX.utils.json_to_sheet(dadosExportar);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Feedbacks");
-    XLSX.writeFile(workbook, "relatorio-feedbacks.xlsx");
+    doc.save(`relatorio_feedback_${new Date().getTime()}.pdf`);
   };
 
   return (
-    <div style={{ padding: "40px", color: "white" }}>
-      <h2 style={{ marginBottom: "30px", display: "flex", alignItems: "center", gap: "10px" }}>
-        <FileText color="#3b82f6" /> Central de Relatórios
-      </h2>
-
-      {/* CARD DE EXPORTAÇÃO */}
-      <div style={cardStyle}>
-        <p style={{ color: "#94a3b8", marginBottom: "20px" }}>
-          Selecione a quantidade de registros e o formato desejado para exportação.
-        </p>
-
-        <div style={{ display: "flex", alignItems: "center", gap: "15px", marginBottom: "30px" }}>
-          <label>Quantidade:</label>
-          <input 
-            type="number" 
-            value={qtd} 
-            onChange={(e) => setQtd(e.target.value)} 
-            style={inputStyle} 
-          />
+    <div style={styles.container}>
+      {/* O botão agora está dentro de um header interno, saindo de cima da sidebar */}
+      <div style={styles.mainContent}>
+        <div style={styles.headerRow}>
+          <button onClick={() => window.location.href = "/"} style={styles.btnHome}>
+            <Home size={18} /> Voltar para Home
+          </button>
+          {carregando && <RefreshCw size={20} color="#10b981" className="animate-spin" />}
         </div>
 
-        <div style={{ display: "flex", gap: "20px" }}>
-          <button onClick={exportarPDF} style={btnPdf}>
-            <Download size={18} /> Exportar para PDF
-          </button>
+        <div style={styles.configBox}>
+          <h2 style={styles.title}><FileText size={28} color="#10b981" /> Configurar Exportação</h2>
           
-          <button onClick={exportarExcel} style={btnExcel}>
-            <Table size={18} /> Exportar para Excel/CSV
+          <div style={styles.section}>
+            <label style={styles.label}><ListOrdered size={18} /> Quantidade de registros:</label>
+            <select 
+              value={quantidade} 
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                setQuantidade(val);
+                buscarDados(val); // Busca no banco a nova quantidade
+              }}
+              style={styles.select}
+            >
+              <option value={5}>Últimos 5 registros</option>
+              <option value={10}>Últimos 10 registros</option>
+              <option value={50}>Últimos 50 registros</option>
+              <option value={0}>Buscar Todos os Registros</option>
+            </select>
+          </div>
+
+          <div style={styles.section}>
+            <label style={styles.label}>Informações para incluir:</label>
+            <div style={styles.checkboxGroup}>
+              {Object.keys(colunas).map(col => (
+                <div key={col} onClick={() => toggleColuna(col)} style={styles.checkboxItem}>
+                  {colunas[col] ? <CheckSquare color="#10b981" /> : <Square color="#94a3b8" />}
+                  <span style={{ color: colunas[col] ? "white" : "#94a3b8" }}>{col.toUpperCase()}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <button onClick={gerarPDF} style={styles.btnExport} disabled={dados.length === 0}>
+            <Download size={20} /> Exportar {dados.length} registros para PDF
           </button>
         </div>
       </div>
-
-      {/* COMENTÁRIOS PAGINADOS */}
-      {todasMensagens.length > 0 && (
-        <div style={{ marginTop: "40px" }}>
-          <h3 style={{ marginBottom: "20px" }}>Comentários ({todasMensagens.length})</h3>
-          <ul>
-            {currentComments.map((c, index) => (
-              <li key={index} style={{ marginBottom: "10px" }}>
-                <strong>[{c.sentimento}]</strong> {c.texto} <em>({c.data})</em>
-              </li>
-            ))}
-          </ul>
-
-          <div style={{ marginTop: "20px" }}>
-            <button onClick={handlePrev} disabled={page === 0}>&lt; Voltar</button>
-            <span style={{ margin: "0 10px" }}>Página {page + 1} de {totalPages}</span>
-            <button onClick={handleNext} disabled={page === totalPages - 1}>Avançar &gt;</button>
-          </div>
-        </div>
-      )}
     </div>
   );
+}
+
+const styles = {
+  container: { 
+    backgroundColor: "#0f172a", 
+    minHeight: "100vh", 
+    display: "flex", 
+    justifyContent: "center", 
+    alignItems: "flex-start", // Começa do topo
+    paddingTop: "40px" 
+  },
+  mainContent: {
+    width: "100%",
+    maxWidth: "600px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "20px",
+    padding: "0 20px"
+  },
+  headerRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "100%"
+  },
+  btnHome: { 
+    background: "#1e293b", 
+    color: "#94a3b8", 
+    padding: "10px 15px", 
+    borderRadius: "8px", 
+    border: "1px solid #334155", 
+    cursor: "pointer", 
+    display: "flex", 
+    alignItems: "center",
+    gap: "8px" 
+  },
+  configBox: { 
+    background: "#1e293b", 
+    padding: "40px", 
+    borderRadius: "20px", 
+    border: "1px solid #334155", 
+    width: "100%",
+    boxShadow: "0 10px 25px rgba(0,0,0,0.3)"
+  },
+  title: { color: "white", display: "flex", alignItems: "center", gap: "12px", marginBottom: "30px" },
+  section: { marginBottom: "25px" },
+  label: { color: "#94a3b8", display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px", fontSize: "0.9rem" },
+  select: { width: "100%", padding: "12px", backgroundColor: "#0f172a", color: "white", border: "1px solid #334155", borderRadius: "8px", outline: "none" },
+  checkboxGroup: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" },
+  checkboxItem: { display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", padding: "10px", background: "#0f172a", borderRadius: "8px", border: "1px solid #334155" },
+  btnExport: { width: "100%", padding: "15px", backgroundColor: "#10b981", color: "white", border: "none", borderRadius: "10px", fontWeight: "bold", cursor: "pointer", display: "flex", justifyContent: "center", gap: "10px", marginTop: "10px" }
 };
-
-// --- ESTILOS ---
-const cardStyle = { background: "#1e293b", padding: "30px", borderRadius: "15px", border: "1px solid #334155" };
-const inputStyle = { background: "#0f172a", border: "1px solid #334155", color: "white", padding: "10px", borderRadius: "8px", width: "100px" };
-const btnPdf = { display: "flex", alignItems: "center", gap: "10px", backgroundColor: "#ef4444", color: "white", border: "none", padding: "12px 25px", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" };
-const btnExcel = { display: "flex", alignItems: "center", gap: "10px", backgroundColor: "#10b981", color: "white", border: "none", padding: "12px 25px", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" };
-
-export default Reports;

@@ -1,38 +1,11 @@
-// import { Routes, Route, Navigate } from "react-router-dom";
-
-// import Home from "./pages/Home/Home.jsx";
-// import Login from "./pages/Login/Login.jsx";
-// import Dashboard from "./pages/Dashboard/Dashboard.jsx";
-// import Clientes from "./pages/Clientes/Clientes.jsx";
-// import TodosComentarios from "./pages/FeedbackPages/TodosComentarios";
-// import Reports from "./pages/Reports/Roports.jsx";
-// import "./styles/global.css";
-
-// export default function App() {
-//   return (
-//     <Routes>
-//       {/* Públicas */}
-//       <Route path="/" element={<Home />} />
-//       <Route path="/login" element={<Login />} />
-
-//       {/* Dashboard */}
-//       <Route path="/dashboard" element={<Dashboard />} />
-
-//       {/* Páginas internas */}
-//       <Route path="/clientes" element={<Clientes />} />
-//       <Route path="/todoscomentarios" element={<TodosComentarios />} />
-//       <Route path="/reports" element={<Reports />} />
-
-//       {/* Fallback */}
-//       <Route path="*" element={<Navigate to="/" />} />
-//     </Routes>
-//   );
-// }
 
 
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+
+// --- SERVIÇOS E DADOS ---
+import { getFeedbacks } from "./services/api"; 
+import { dadosExemplo } from "./data/mockData"; 
 
 // --- COMPONENTES ---
 import Sidebar from "./components/Sidebar";
@@ -53,27 +26,36 @@ function App() {
     facebook: 3 
   });
 
-  const [feedbacks] = useState([
-    { 
-      id: 1, 
-      date: "2024-05-01", 
-      positivos: 15, 
-      negativos: 3, 
-      mensagens: [
-        { text: "Ótimo post no Insta!", sentiment: "pos", origem: "instagram" },
-        { text: "Não gostei do atendimento no Face", sentiment: "neg", origem: "facebook" }
-      ] 
-    }
-  ]);
+  // Começamos com os dados de exemplo para o layout ter conteúdo visual imediato
+  const [feedbacks, setFeedbacks] = useState(dadosExemplo);
+
+  useEffect(() => {
+    getFeedbacks()
+      .then((response) => {
+        // O log do Hibernate mostrou que o Spring está a fazer paginação.
+        // Pegamos nos dados de 'conteudo' (conforme definido no seu DTO/Controller)
+        const dadosVindoDoJava = response.data.conteudo || response.data.content;
+
+        if (dadosVindoDoJava) {
+          // Mantendo a compatibilidade: se o seu layout espera um array de objetos 
+          // com o formato antigo, podemos mapear aqui, ou ajustar nos componentes.
+          setFeedbacks(dadosVindoDoJava);
+          console.log("Dados carregados do Backend com sucesso!");
+        }
+      })
+      .catch((error) => {
+        console.error("Erro ao conectar ao Backend. Mantendo MockData.", error);
+      });
+  }, []);
 
   return (
     <Routes>
-      {/* --- SEM SIDEBAR --- */}
+      {/* --- ROTAS SEM SIDEBAR --- */}
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/clientes" element={<Clientes />} />
 
-      {/* --- COM SIDEBAR --- */}
+      {/* --- ROTAS COM SIDEBAR (Layout Protegido) --- */}
       <Route path="/*" element={
         <div style={{ display: "flex", width: "100vw", height: "100vh", backgroundColor: "#0f172a", overflow: "hidden" }}>
           <Sidebar />
@@ -87,9 +69,17 @@ function App() {
                 path="/social-messages" 
                 element={<Social sampleFeedbacks={feedbacks} setNotificacoes={setNotificacoes} />} 
               />
-              <Route path="/todoscomentarios" element={<TodosComentarios sampleFeedbacks={feedbacks} />} />
-              <Route path="/reports" element={<Reports sampleFeedbacks={feedbacks} />} />
+              <Route 
+                path="/todoscomentarios" 
+                element={<TodosComentarios sampleFeedbacks={feedbacks} />} 
+              />
+              <Route 
+                path="/reports" 
+                element={<Reports sampleFeedbacks={feedbacks} />} 
+              />
               <Route path="/analise" element={<AnaliseEmLote />} />
+              
+              {/* Redireciona qualquer rota interna desconhecida para o dashboard */}
               <Route path="*" element={<Navigate to="/dashboard" />} />
             </Routes>
           </main>
@@ -98,6 +88,5 @@ function App() {
     </Routes>
   );
 }
-
 
 export default App;
