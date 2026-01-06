@@ -628,28 +628,27 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import {
-  Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, 
+  Chart as ChartJS, CategoryScale, LinearScale, BarElement,
   ArcElement, Title, Tooltip, Legend, Filler
 } from "chart.js";
-import { Line, Doughnut } from "react-chartjs-2";
-import { TrendingUp, PieChart, Instagram, Facebook, Home, RefreshCw, LogOut, X } from "lucide-react";
+import { Bar, Doughnut } from "react-chartjs-2";
+import { TrendingUp, PieChart, Instagram, Facebook, Home, RefreshCw, X } from "lucide-react";
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Title, Tooltip, Legend, Filler);
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend, Filler);
 
 const Dashboard = () => {
   const [dadosBanco, setDadosBanco] = useState([]);
   const [carregando, setCarregando] = useState(false);
   const [modalAberto, setModalAberto] = useState(false);
-  const [filtroSelecionado, setFiltroSelecionado] = useState(null); // 'POSITIVO', 'NEGATIVO', 'Instagram' ou 'Facebook'
-  
+  const [filtroTipo, setFiltroTipo] = useState(""); 
+  const [valorFiltro, setValorFiltro] = useState(""); 
   const [novasInsta, setNovasInsta] = useState(0);
   const [novasFace, setNovasFace] = useState(0);
 
-  // 1️⃣ Busca inicial
   const buscarDadosDoBanco = async () => {
     setCarregando(true);
     try {
-      const response = await axios.get("http://localhost:8080/sentiments?size=10000", {
+      const response = await axios.get("http://localhost:8080/sentiments?size=2000", {
         headers: { 'Authorization': `Basic ${btoa("admin:123456")}` }
       });
       const lista = response.data.conteudo || response.data.content || response.data || [];
@@ -661,154 +660,113 @@ const Dashboard = () => {
     }
   };
 
-  // 2️⃣ SSE + notificações reais
   useEffect(() => {
     buscarDadosDoBanco();
-
-    // pedir permissão para notificações
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
-    }
-
-    const eventSource = new EventSource("http://localhost:8080/notifications/alerts");
-
+    const eventSource = new EventSource("http://localhost:8080/webhook/alerts");
+    
     eventSource.onmessage = (event) => {
       const novoAlerta = JSON.parse(event.data);
-
-      // Atualiza dados gerais
       setDadosBanco((prev) => [novoAlerta, ...prev]);
-
-      const origem = (novoAlerta.origem || "").toLowerCase();
-
-      // Atualiza badges
-      if (origem === "instagram") setNovasInsta(prev => prev + 1);
-      else if (origem === "facebook") setNovasFace(prev => prev + 1);
-
-      // 🔔 NOTIFICAÇÃO REAL DO NAVEGADOR
-      if ("Notification" in window && Notification.permission === "granted") {
-        new Notification("📩 Novo feedback recebido", {
-          body: novoAlerta.comentario || "Nova mensagem detectada",
-          icon: origem === "instagram" ? "/instagram.png" : "/facebook.png"
-        });
-      }
-    };
-
-    eventSource.onerror = () => {
-      eventSource.close();
-      setTimeout(() => {
-        // reconecta automaticamente
-        window.location.reload();
-      }, 5000);
+      const origem = (novoAlerta.origem || "").toUpperCase();
+      if (origem === "INSTAGRAM") setNovasInsta(p => p + 1);
+      if (origem === "FACEBOOK" || origem === "PAGE") setNovasFace(p => p + 1);
     };
 
     return () => eventSource.close();
   }, []);
 
-  // 3️⃣ Controle de modal
-  const abrirModal = (tipo) => {
-    setFiltroSelecionado(tipo);
+  const abrirModal = (tipo, valor) => {
+    setFiltroTipo(tipo);
+    setValorFiltro(valor);
     setModalAberto(true);
   };
 
   const fecharModal = () => {
-    if (filtroSelecionado === "Instagram") setNovasInsta(0);
-    if (filtroSelecionado === "Facebook") setNovasFace(0);
+    if (valorFiltro === "Instagram") setNovasInsta(0);
+    if (valorFiltro === "Facebook") setNovasFace(0);
     setModalAberto(false);
   };
 
-  // 4️⃣ Gráficos
-  const ultimos15 = [...dadosBanco].slice(0, 15).reverse();
-  const lineData = {
-    labels: ultimos15.map((f, i) => {
-        if (f.criadoEm) {
-            const d = new Date(f.criadoEm);
-            return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
-        }
-        return `T-${15-i}`;
+  const mensagensFiltradas = dadosBanco.filter(f => {
+    if (filtroTipo === "SENTIMENTO") {
+        if (valorFiltro === "TOTAL") return true;
+        return f.sentimento === valorFiltro;
+    }
+    if (filtroTipo === "REDE") {
+      const origem = (f.origem || "").toUpperCase();
+      if (valorFiltro === "Instagram") return origem === "INSTAGRAM";
+      if (valorFiltro === "Facebook") return origem === "FACEBOOK" || origem === "PAGE";
+    }
+    return true;
+  });
+
+  const ultimosRegistros = [...dadosBanco].slice(0, 10).reverse();
+  const barData = {
+    labels: ultimosRegistros.map(f => {
+      const data = f.criadoEm ? new Date(f.criadoEm) : new Date();
+      return `${data.getHours()}:${String(data.getMinutes()).padStart(2, '0')}`;
     }),
     datasets: [
-      { 
-        label: "Positivos", 
-        data: ultimos15.map(f => f.sentimento === "POSITIVO" ? 1 : 0), 
-        borderColor: "#10b981", backgroundColor: "rgba(16, 185, 129, 0.2)", fill: true, tension: 0.4, pointRadius: 3 
-      },
-      { 
-        label: "Negativos", 
-        data: ultimos15.map(f => f.sentimento === "NEGATIVO" ? 1 : 0), 
-        borderColor: "#ef4444", backgroundColor: "rgba(239, 68, 68, 0.2)", fill: true, tension: 0.4, pointRadius: 3 
-      }
+      { label: "Positivos", data: ultimosRegistros.map(f => f.sentimento === "POSITIVO" ? 1 : 0), backgroundColor: "#10b981", borderRadius: 4 },
+      { label: "Negativos", data: ultimosRegistros.map(f => f.sentimento === "NEGATIVO" ? 1 : 0), backgroundColor: "#ef4444", borderRadius: 4 }
     ],
   };
 
-  const mensagensFiltradas = dadosBanco.filter(f => {
-    const origem = (f.origem || "").toLowerCase();
-    const texto = (f.comentario || "").toLowerCase();
-    if (filtroSelecionado === "Instagram") return origem === "instagram" || texto.includes("instagram");
-    if (filtroSelecionado === "Facebook") return origem === "facebook" || texto.includes("facebook");
-    return false;
-  });
-
   return (
-    <div style={{ padding: "30px", color: "white", minHeight: "100vh", backgroundColor: "#0f172a", position: "relative" }}>
+    <div style={{ padding: "30px", color: "white", minHeight: "100vh", backgroundColor: "#0f172a", position: "relative", overflowX: "hidden" }}>
       
-      {/* HEADER ÍCONES */}
+      {/* HEADER BOTOES */}
       <div style={{ position: "absolute", top: "30px", right: "30px", display: "flex", gap: "15px", zIndex: 100 }}>
         <button onClick={buscarDadosDoBanco} style={btnIconStyle}>
           <RefreshCw size={22} color="#94a3b8" className={carregando ? "animate-spin" : ""} />
         </button>
-        <button onClick={() => abrirModal("Instagram")} style={btnIconStyle}>
+        <button onClick={() => abrirModal("REDE", "Instagram")} style={btnIconStyle}>
           <Instagram color="#E4405F" size={24} />
           {novasInsta > 0 && <span style={badgeStyle}>{novasInsta}</span>}
         </button>
-        <button onClick={() => abrirModal("Facebook")} style={btnIconStyle}>
+        <button onClick={() => abrirModal("REDE", "Facebook")} style={btnIconStyle}>
           <Facebook color="#1877F2" size={24} />
           {novasFace > 0 && <span style={badgeStyle}>{novasFace}</span>}
-        </button>
-        <button onClick={() => window.location.href = "/login"} style={{...btnIconStyle, border: "1px solid #ef4444"}}>
-          <LogOut size={22} color="#ef4444" />
         </button>
       </div>
 
       <button onClick={() => window.location.href = "/"} style={btnHomeStyle}><Home size={18} /> Home</button>
-      <h2 style={{ marginBottom: "25px", fontWeight: "600" }}>Dashboard Analítico</h2>
+      <h2 style={{ marginBottom: "25px", fontWeight: "600" }}>Dashboard de Feedback</h2>
 
       {/* CARDS RESUMO */}
       <div style={{ display: "flex", gap: "20px", marginBottom: "30px" }}>
-        <div style={{ ...cardResumo, borderLeft: "6px solid #3b82f6" }}>
+        <div onClick={() => abrirModal("SENTIMENTO", "TOTAL")} style={{ ...cardResumo, borderLeft: "6px solid #3b82f6", cursor: "pointer" }}>
           <span style={labelCard}>Total</span>
-          <div style={{ fontSize: "2.5rem", fontWeight: "bold" }}>{dadosBanco.length}</div>
+          <div style={{ fontSize: "2rem", fontWeight: "bold" }}>{dadosBanco.length}</div>
         </div>
-        <div style={{ ...cardResumo, borderLeft: "6px solid #10b981" }}>
+        <div onClick={() => abrirModal("SENTIMENTO", "POSITIVO")} style={{ ...cardResumo, borderLeft: "6px solid #10b981", cursor: "pointer" }}>
           <span style={labelCard}>Positivos</span>
-          <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "#10b981" }}>{dadosBanco.filter(f => f.sentimento === "POSITIVO").length}</div>
+          <div style={{ fontSize: "2rem", fontWeight: "bold", color: "#10b981" }}>{dadosBanco.filter(f => f.sentimento === "POSITIVO").length}</div>
         </div>
-        <div style={{ ...cardResumo, borderLeft: "6px solid #ef4444" }}>
+        <div onClick={() => abrirModal("SENTIMENTO", "NEGATIVO")} style={{ ...cardResumo, borderLeft: "6px solid #ef4444", cursor: "pointer" }}>
           <span style={labelCard}>Negativos</span>
-          <div style={{ fontSize: "2.5rem", fontWeight: "bold", color: "#ef4444" }}>{dadosBanco.filter(f => f.sentimento === "NEGATIVO").length}</div>
+          <div style={{ fontSize: "2rem", fontWeight: "bold", color: "#ef4444" }}>{dadosBanco.filter(f => f.sentimento === "NEGATIVO").length}</div>
         </div>
       </div>
 
-      {/* GRÁFICOS */}
-      <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
-        <div style={{ ...cardGrafico, flex: "2" }}>
-          <div style={tituloGrafico}><TrendingUp size={18} /> Evolução de Sentimentos</div>
-          <div style={{ height: "300px" }}><Line data={lineData} options={chartOptions} /></div>
+      {/* ÁREA DE GRÁFICOS */}
+      <div style={{ display: "flex", gap: "20px", width: "100%", alignItems: "flex-start" }}>
+        <div style={{ ...cardGrafico, flex: "0 0 58%", height: "350px", minWidth: "0" }}>
+          <div style={tituloGrafico}><TrendingUp size={18} /> Histórico Temporal</div>
+          <div style={{ height: "250px" }}>
+            <Bar data={barData} options={{ maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { ticks: { color: "#94a3b8" } } } }} />
+          </div>
         </div>
-        <div style={{ ...cardGrafico, flex: "1" }}>
-          <div style={tituloGrafico}><PieChart size={18} /> Proporção Geral</div>
-          <div style={{ height: "300px" }}>
+
+        <div style={{ ...cardGrafico, flex: "0 0 38%", height: "350px", minWidth: "0" }}>
+          <div style={tituloGrafico}><PieChart size={18} /> Proporção</div>
+          <div style={{ height: "250px" }}>
             <Doughnut 
               data={{
                 labels: ["Positivos", "Negativos"],
-                datasets: [{ 
-                  data: [
-                    dadosBanco.filter(f => f.sentimento === "POSITIVO").length, 
-                    dadosBanco.filter(f => f.sentimento === "NEGATIVO").length
-                  ], 
-                  backgroundColor: ["#10b981", "#ef4444"], borderWidth: 0 
-                }]
+                datasets: [{ data: [dadosBanco.filter(f => f.sentimento === "POSITIVO").length, dadosBanco.filter(f => f.sentimento === "NEGATIVO").length], backgroundColor: ["#10b981", "#ef4444"], borderWidth: 0 }]
               }} 
-              options={{ maintainAspectRatio: false, plugins: { legend: { labels: { color: "#94a3b8" } } } }}
+              options={{ maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: "#94a3b8" } } } }}
             />
           </div>
         </div>
@@ -818,47 +776,34 @@ const Dashboard = () => {
       {modalAberto && (
         <div style={modalOverlay}>
           <div style={modalContent}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px", alignItems: "center" }}>
-              <h3 style={{ margin: 0 }}>Feed: {filtroSelecionado}</h3>
-              <X size={24} style={{ cursor: "pointer" }} onClick={fecharModal} />
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
+              <h3 style={{ margin: 0 }}>Visualizando: {valorFiltro}</h3>
+              <X size={28} style={{ cursor: "pointer" }} onClick={fecharModal} />
             </div>
-            <div style={{ maxHeight: "400px", overflowY: "auto" }}>
-              {mensagensFiltradas.length > 0 ? mensagensFiltradas.map((m, i) => (
+            <div style={{ maxHeight: "500px", overflowY: "auto" }}>
+              {mensagensFiltradas.map((m, i) => (
                 <div key={i} style={mensagemItem}>
-                  <p style={{ margin: "0 0 5px 0", fontSize: "14px" }}>{m.comentario}</p>
-                  <span style={{ color: m.sentimento === "POSITIVO" ? "#10b981" : "#ef4444", fontSize: "12px", fontWeight: "bold" }}>
-                    {m.sentimento}
-                  </span>
+                  <p style={{ margin: "0 0 8px 0" }}>{m.comentario}</p>
+                  <span style={{ color: m.sentimento === "POSITIVO" ? "#10b981" : "#ef4444", fontWeight: "bold", fontSize: "12px" }}>{m.sentimento}</span>
                 </div>
-              )) : <p style={{ textAlign: "center", color: "#94a3b8" }}>Nenhum dado capturado.</p>}
+              ))}
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 };
 
-// --- ESTILOS ---
 const btnIconStyle = { width: "50px", height: "50px", borderRadius: "12px", backgroundColor: "#1e293b", border: "1px solid #334155", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", position: "relative" };
-const badgeStyle = { position: "absolute", top: "-5px", right: "-5px", backgroundColor: "#ef4444", color: "white", borderRadius: "50%", minWidth: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: "bold", border: "2px solid #0f172a" };
+const badgeStyle = { position: "absolute", top: "-5px", right: "-5px", backgroundColor: "#ef4444", color: "white", borderRadius: "50%", minWidth: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "bold" };
 const btnHomeStyle = { background: "#1e293b", border: "1px solid #334155", color: "#94a3b8", padding: "8px 16px", borderRadius: "6px", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", marginBottom: "20px" };
-const cardResumo = { flex: "1", background: "#1e293b", padding: "25px", borderRadius: "12px", border: "1px solid #334155" };
-const cardGrafico = { background: "#1e293b", padding: "25px", borderRadius: "15px", border: "1px solid #334155", minWidth: "350px" };
-const labelCard = { fontSize: "0.85rem", color: "#94a3b8", textTransform: "uppercase" };
-const tituloGrafico = { display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px", color: "#cbd5e1" };
+const cardResumo = { flex: "1", background: "#1e293b", padding: "20px", borderRadius: "12px", border: "1px solid #334155" };
+const cardGrafico = { background: "#1e293b", padding: "25px", borderRadius: "15px", border: "1px solid #334155" };
+const labelCard = { fontSize: "0.75rem", color: "#94a3b8", textTransform: "uppercase" };
+const tituloGrafico = { display: "flex", alignItems: "center", gap: "10px", marginBottom: "15px", color: "#cbd5e1", fontSize: "14px" };
 const modalOverlay = { position: "fixed", top: 0, left: 0, width: "100%", height: "100%", backgroundColor: "rgba(0,0,0,0.85)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 };
-const modalContent = { backgroundColor: "#1e293b", padding: "30px", borderRadius: "20px", width: "450px", border: "1px solid #334155" };
+const modalContent = { backgroundColor: "#1e293b", padding: "30px", borderRadius: "20px", width: "650px", border: "1px solid #334155" };
 const mensagemItem = { padding: "15px", borderBottom: "1px solid #334155", backgroundColor: "#0f172a", marginBottom: "10px", borderRadius: "8px" };
-
-const chartOptions = { 
-  maintainAspectRatio: false, 
-  plugins: { legend: { labels: { color: '#94a3b8' } } },
-  scales: {
-    y: { beginAtZero: true, max: 1.5, ticks: { display: false }, grid: { color: "#334155" } },
-    x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
-  }
-};
 
 export default Dashboard;
