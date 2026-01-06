@@ -750,7 +750,7 @@ const Dashboard = () => {
       </div>
 
       {/* ÁREA DE GRÁFICOS */}
-      <div style={{ display: "flex", gap: "20px", width: "100%", alignItems: "flex-start" }}>
+      <div style={{ display: "flex", gap: "20px", width: "95%", alignItems: "flex-start" }}>
         <div style={{ ...cardGrafico, flex: "0 0 58%", height: "350px", minWidth: "0" }}>
           <div style={tituloGrafico}><TrendingUp size={18} /> Histórico Temporal</div>
           <div style={{ height: "250px" }}>
