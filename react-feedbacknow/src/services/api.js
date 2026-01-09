@@ -1,11 +1,17 @@
-import axios from 'axios';
+import axios from "axios";
 
 const api = axios.create({
-  baseURL: 'http://localhost:8080',
-  withCredentials: true
+  baseURL: "http://localhost:8080"
 });
 
-// Função para buscar os feedbacks do banco de dados
-export const getFeedbacks = () => api.get('/sentiments');
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export const getFeedbacks = () => api.get("/sentiments");
 
 export default api;

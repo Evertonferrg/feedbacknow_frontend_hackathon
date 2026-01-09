@@ -11,7 +11,21 @@ export default function Clientes() {
   const authHeader = btoa("admin:123456");
 
   const handleEnviarFeedback = async () => {
-    if (!comentario.trim()) return;
+    if (!comentario.trim()) {
+  setStatus({
+    type: 'error',
+    msg: 'O feedback não pode estar vazio.'
+  });
+  return;
+}
+
+if (comentario.trim().length < 4) {
+  setStatus({
+    type: 'error',
+    msg: 'Quantidade de caracteres inválida. O feedback deve conter no mínimo 4 caracteres.'
+  });
+  return;
+}
 
     setLoading(true);
     setStatus({ type: '', msg: '' });

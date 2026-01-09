@@ -1,6 +1,9 @@
 import React, { useState, useRef } from "react";
 import { Send, UploadCloud, FileText, X } from "lucide-react";
 import api from "../../services/api";
+import mammoth from "mammoth";
+import * as XLSX from "xlsx";
+
 
 // --- COMPONENTE ANALISE EM LOTE + COMENTÁRIOS PAGINADOS ---
 const AnaliseEmLote = () => {
@@ -14,28 +17,70 @@ const AnaliseEmLote = () => {
   const fileInputRef = useRef(null);
 
   // --- LEITURA DO ARQUIVO ---
-  const processarArquivo = (file) => {
+  const processarArquivo = async(file) => {
+  let conteudo = "";
+
+  if (file.type === "text/plain" || file.name.endsWith(".csv")) {
     const reader = new FileReader();
     reader.onload = (e) => {
-      const conteudo = e.target.result;
+      conteudo = e.target.result;
       setTexto(conteudo);
       setArquivo(file);
-
-      const linhas = conteudo
-        .split("\n")
-        .map(l => l.trim())
-        .filter(l => l !== "");
-
-      const preview = linhas.map((l, i) => ({
-        id: Date.now() + i,
-        text: l,
-        sentiment: "processando"
-      }));
-
-      setFeedbacks(preview);
-      setPage(0);
+      criarPreview(conteudo);
     };
     reader.readAsText(file);
+
+  } else if (file.name.endsWith(".xlsx") || file.name.endsWith(".xls")) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      conteudo = XLSX.utils.sheet_to_csv(sheet);
+      setTexto(conteudo);
+      setArquivo(file);
+      criarPreview(conteudo);
+    };
+    reader.readAsArrayBuffer(file);
+
+  } else if (file.name.endsWith(".docx")) {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const arrayBuffer = e.target.result;
+      try {
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        conteudo = result.value;
+        setTexto(conteudo);
+        setArquivo(file);
+        criarPreview(conteudo);
+      } catch (err) {
+        console.error("Erro ao ler arquivo Word:", err);
+        alert("Não foi possível processar o arquivo Word.");
+      }
+    };
+    reader.readAsArrayBuffer(file);
+
+  } else {
+    alert("Formato de arquivo não suportado!");
+  }
+};
+
+  // --- CRIA PREVIEW DAS LINHAS ---
+  const criarPreview = (conteudo) => {
+    const linhas = conteudo
+      .split("\n")
+      .map(l => l.trim())
+      .filter(l => l !== "");
+
+    const preview = linhas.map((l) => ({
+      id: crypto.randomUUID(),
+      text: l,
+      sentiment: "PROCESSANDO"
+    }));
+
+    setFeedbacks(preview);
+    setPage(0);
   };
 
   const handleDrop = (e) => {
@@ -66,12 +111,9 @@ const AnaliseEmLote = () => {
       const resultados = [];
 
       for (const linha of linhas) {
-        const response = await api.post("/sentiment", {
-          comentario: linha
-        });
-
+        const response = await api.post("/sentiment", { comentario: linha });
         resultados.push({
-          id: response.data.id,
+          id: crypto.randomUUID(),
           text: response.data.comentario,
           sentiment: response.data.sentimento
         });
@@ -141,7 +183,7 @@ const AnaliseEmLote = () => {
 
             <textarea
               style={textAreaStyle}
-              placeholder="Cole os dados aqui ou arraste um arquivo CSV/TXT..."
+              placeholder="Cole os dados aqui ou arraste um arquivo TXT, CSV, Excel ou Word..."
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
             />
@@ -153,7 +195,7 @@ const AnaliseEmLote = () => {
               ref={fileInputRef}
               onChange={handleFileChange}
               style={{ display: "none" }}
-              accept=".csv,.txt"
+              accept=".txt,.csv,.xls,.xlsx,.docx"
             />
 
             <button onClick={() => fileInputRef.current.click()} style={secondaryBtn}>
@@ -207,7 +249,7 @@ const AnaliseEmLote = () => {
   );
 };
 
-// --- ESTILOS (INALTERADOS) ---
+// --- ESTILOS ---
 const cardStyle = {
   backgroundColor: "#1e293b",
   padding: "30px",

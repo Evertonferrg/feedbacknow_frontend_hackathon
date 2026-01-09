@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -8,19 +9,36 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  function handleLogin() {
+  // funcao login via jwt
+  async function handleLogin() {
     setError("");
     if (!username.trim() || !pass.trim()) {
       setError("Por favor, preencha usuário e senha.");
       return;
     }
+
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      localStorage.setItem("user", JSON.stringify({ name: username }));
-      navigate("/dashboard");
-    }, 600);
+
+    try {//chama o backend para autenticar
+      const response = await axios.post("http://localhost:8080/auth/login", {
+        username,
+        password: pass
+    });
+
+    const {token} = response.data;
+
+    //salva o token no localstorage
+    localStorage.setItem("token", token);
+
+    //redireciona para a rota 
+    navigate("/dashboard");
+
+  } catch (err) {
+    setError("Usuario ou senha incorretos.")
+  }finally {
+    setLoading(false);
   }
+}
 
   // --- ADICIONE ESTES ESTILOS AQUI ---
   const styles = {
